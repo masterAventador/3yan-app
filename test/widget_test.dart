@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sanyan_app/core/storage/local_storage.dart';
+import 'package:sanyan_user/sanyan_user.dart';
 
 import 'package:sanyan_app/main.dart';
 

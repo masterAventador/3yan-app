@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'app/routes.dart';
-import 'core/storage/local_storage.dart';
+import 'package:sanyan_network/sanyan_network.dart';
+import 'package:sanyan_routes/sanyan_routes.dart';
+import 'package:sanyan_user/sanyan_user.dart';
+import 'package:sanyan_chat/sanyan_chat.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await LocalStorage.init();
+
+  // Wire up token providers so network module can access auth token
+  ApiClient.tokenProvider = () => LocalStorage.token;
+  WsClient.tokenProvider = () => LocalStorage.token;
+
   runApp(const SanyanApp());
 }
 
@@ -32,7 +39,13 @@ class SanyanApp extends StatelessWidget {
         useMaterial3: true,
       ),
       initialRoute: AppRoutes.splash,
-      getPages: AppRoutes.pages,
+      getPages: [
+        GetPage(name: AppRoutes.splash, page: () => const SplashPage()),
+        GetPage(name: AppRoutes.login, page: () => const LoginPage()),
+        GetPage(name: AppRoutes.register, page: () => const RegisterPage()),
+        GetPage(name: AppRoutes.home, page: () => const HomePage()),
+        GetPage(name: AppRoutes.chat, page: () => const ChatPage()),
+      ],
     );
   }
 }
