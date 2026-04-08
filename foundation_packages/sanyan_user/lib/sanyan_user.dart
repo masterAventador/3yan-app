@@ -1,8 +1,3 @@
-export 'src/auth/login_page.dart';
-export 'src/auth/login_controller.dart';
-export 'src/auth/register_page.dart';
-export 'src/auth/register_controller.dart';
-export 'src/splash/splash_page.dart';
 export 'src/api/auth_api.dart';
 export 'src/api/user_api.dart';
 export 'src/api/device_api.dart';

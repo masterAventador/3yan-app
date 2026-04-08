@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sanyan_user/sanyan_user.dart';
+import 'package:sanyan_auth/sanyan_auth.dart';
 
 void main() {
   test('should validate empty phone', () {

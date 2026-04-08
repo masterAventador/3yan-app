@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sanyan_network/sanyan_network.dart';
 import 'package:sanyan_routes/sanyan_routes.dart';
-import '../api/auth_api.dart';
-import '../dao/local_storage.dart';
+import 'package:sanyan_user/sanyan_user.dart';
 
 class LoginController extends GetxController {
   final phoneController = TextEditingController();

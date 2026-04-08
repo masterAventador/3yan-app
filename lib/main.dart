@@ -4,6 +4,7 @@ import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import 'package:sanyan_network/sanyan_network.dart';
 import 'package:sanyan_routes/sanyan_routes.dart';
 import 'package:sanyan_user/sanyan_user.dart';
+import 'package:sanyan_auth/sanyan_auth.dart';
 import 'package:sanyan_chat/sanyan_chat.dart';
 
 void main() async {

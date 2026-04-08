@@ -23,6 +23,8 @@ dependencies:
     path: foundation_packages/sanyan_user
 
   # Business packages
+  sanyan_auth:
+    path: business_packages/sanyan_auth
   sanyan_chat:
     path: business_packages/sanyan_chat
 
