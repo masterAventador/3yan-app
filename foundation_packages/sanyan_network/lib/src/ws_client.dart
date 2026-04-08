@@ -25,8 +25,9 @@ class WsEvent {
 
   factory WsEvent.fromJson(Map<String, dynamic> json) => WsEvent(
     type: json['type'] ?? '',
-    conversationId: json['conversationId'],
-    message: json['message'],
+    conversationId: json['conversationId'] ??
+        (json['message'] is Map ? json['message']['conversationId'] : null),
+    message: json['message'] is Map<String, dynamic> ? json['message'] : null,
     clientMsgId: json['clientMsgId'],
     serverMsgId: json['serverMsgId'],
     messages: json['messages'],
