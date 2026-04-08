@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sanyan_network/sanyan_network.dart';
 import '../api/chat_api.dart';
+import '../home/home_controller.dart';
 import '../models/conversation.dart';
 import '../models/message.dart';
 
@@ -23,6 +24,10 @@ class ChatController extends GetxController {
     _loadHistory();
     _listenWs();
     ConversationApi.markRead(conversation.id);
+    // 通知首页：正在查看这个会话
+    if (Get.isRegistered<HomeController>()) {
+      Get.find<HomeController>().enterChat(conversation.id);
+    }
   }
 
   Future<void> _loadHistory() async {
@@ -101,6 +106,10 @@ class ChatController extends GetxController {
     _wsSubscription?.cancel();
     inputController.dispose();
     scrollController.dispose();
+    // 通知首页：离开聊天页，刷新列表
+    if (Get.isRegistered<HomeController>()) {
+      Get.find<HomeController>().leaveChat();
+    }
     super.onClose();
   }
 }

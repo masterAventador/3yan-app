@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import '../../models/message.dart';
 
 class MessageBubble extends StatelessWidget {
@@ -11,39 +12,46 @@ class MessageBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
-        mainAxisAlignment:
-            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isUser) ...[
-            const CircleAvatar(radius: 18, child: Text('AI')),
-            const SizedBox(width: 8),
+            // AI avatar
+            Container(
+              width: 36,
+              height: 36,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: AppColors.brandGradient,
+              ),
+              child: const Icon(Icons.favorite, color: Colors.white, size: 18),
+            ),
+            const SizedBox(width: 10),
           ],
           Flexible(
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
-                color: isUser
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.surfaceContainerHighest,
+                gradient: isUser ? AppColors.buttonGradient : null,
+                color: isUser ? null : AppColors.aiBubble,
                 borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(16),
-                  topRight: const Radius.circular(16),
-                  bottomLeft: Radius.circular(isUser ? 16 : 4),
-                  bottomRight: Radius.circular(isUser ? 4 : 16),
+                  topLeft: Radius.circular(isUser ? 16 : 4),
+                  topRight: Radius.circular(isUser ? 4 : 16),
+                  bottomLeft: const Radius.circular(16),
+                  bottomRight: const Radius.circular(16),
                 ),
               ),
               child: Text(
                 message.content,
                 style: TextStyle(
-                  color: isUser ? Colors.white : null,
+                  color: isUser ? Colors.white : AppColors.textPrimary,
                   fontSize: 15,
+                  height: 1.5,
                 ),
               ),
             ),
           ),
-          if (isUser) const SizedBox(width: 8),
+          if (isUser) const SizedBox(width: 10),
         ],
       ),
     );

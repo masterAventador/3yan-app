@@ -9,6 +9,7 @@ class LoginController extends GetxController {
   final phoneController = TextEditingController();
   final passwordController = TextEditingController();
   final isLoading = false.obs;
+  final obscurePassword = true.obs;
 
   String? validatePhone(String phone) {
     if (phone.isEmpty) return '请输入手机号';

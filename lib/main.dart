@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import 'package:sanyan_network/sanyan_network.dart';
 import 'package:sanyan_routes/sanyan_routes.dart';
 import 'package:sanyan_user/sanyan_user.dart';
@@ -24,20 +25,7 @@ class SanyanApp extends StatelessWidget {
     return GetMaterialApp(
       title: '三言',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6C5CE7),
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6C5CE7),
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light,
       initialRoute: AppRoutes.splash,
       getPages: [
         GetPage(name: AppRoutes.splash, page: () => const SplashPage()),

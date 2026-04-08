@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import 'package:sanyan_routes/sanyan_routes.dart';
 import 'login_controller.dart';
 
@@ -11,67 +12,244 @@ class LoginPage extends StatelessWidget {
     final c = Get.put(LoginController());
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                '三言',
-                style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
+        child: Column(
+          children: [
+            // Brand area
+            const SizedBox(height: 80),
+            // Logo
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                gradient: AppColors.brandGradient,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.brandEnd.withValues(alpha: 0.25),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                'AI 陪伴，有温度的对话',
-                style: TextStyle(color: Colors.grey[600]),
-                textAlign: TextAlign.center,
+              child: const Icon(
+                Icons.favorite,
+                color: Colors.white,
+                size: 32,
               ),
-              const SizedBox(height: 48),
-              TextField(
-                controller: c.phoneController,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: '手机号',
-                  prefixIcon: Icon(Icons.phone_outlined),
-                  border: OutlineInputBorder(),
-                ),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              '三言',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+                letterSpacing: 3,
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: c.passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: '密码',
-                  prefixIcon: Icon(Icons.lock_outline),
-                  border: OutlineInputBorder(),
-                ),
-                onSubmitted: (_) => c.login(),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'AI 陪伴，懂你所言',
+              style: TextStyle(
+                fontSize: 15,
+                color: AppColors.textSecondary,
               ),
-              const SizedBox(height: 24),
-              Obx(() => FilledButton(
-                    onPressed: c.isLoading.value ? null : c.login,
-                    child: c.isLoading.value
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
+            ),
+
+            // Form
+            const SizedBox(height: 40),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: Column(
+                children: [
+                  // Phone input
+                  Container(
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: AppColors.inputFill,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 16),
+                        const Text(
+                          '+86',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Container(width: 1, height: 24, color: AppColors.border),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: c.phoneController,
+                            keyboardType: TextInputType.phone,
+                            style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
+                            decoration: const InputDecoration(
+                              hintText: '手机号',
+                              hintStyle: TextStyle(color: AppColors.textPlaceholder, fontSize: 16),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.zero,
+                              isDense: true,
                             ),
-                          )
-                        : const Text('登录'),
-                  )),
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: () => Get.toNamed(AppRoutes.register),
-                child: const Text('没有账号？去注册'),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Password input
+                  Container(
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: AppColors.inputFill,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Obx(() => TextField(
+                                controller: c.passwordController,
+                                obscureText: c.obscurePassword.value,
+                                style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
+                                decoration: const InputDecoration(
+                                  hintText: '密码',
+                                  hintStyle: TextStyle(color: AppColors.textPlaceholder, fontSize: 16),
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.zero,
+                                  isDense: true,
+                                ),
+                                onSubmitted: (_) => c.login(),
+                              )),
+                        ),
+                        Obx(() => GestureDetector(
+                              onTap: () => c.obscurePassword.toggle(),
+                              child: Icon(
+                                c.obscurePassword.value ? Icons.visibility_off : Icons.visibility,
+                                color: AppColors.textPlaceholder,
+                                size: 20,
+                              ),
+                            )),
+                        const SizedBox(width: 16),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Login button
+                  Obx(() => GestureDetector(
+                        onTap: c.isLoading.value ? null : c.login,
+                        child: Container(
+                          height: 52,
+                          decoration: BoxDecoration(
+                            gradient: AppColors.buttonGradient,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          alignment: Alignment.center,
+                          child: c.isLoading.value
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  '登录',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                        ),
+                      )),
+
+                  const SizedBox(height: 16),
+
+                  // Links
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        '忘记密码？',
+                        style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                      ),
+                      GestureDetector(
+                        onTap: () => Get.toNamed(AppRoutes.register),
+                        child: const Text(
+                          '没有账号？立即注册',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.accent,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+
+            const Spacer(),
+
+            // Bottom
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: Row(
+                children: [
+                  Expanded(child: Container(height: 1, color: AppColors.divider)),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      '其他方式',
+                      style: TextStyle(fontSize: 12, color: AppColors.textPlaceholder),
+                    ),
+                  ),
+                  Expanded(child: Container(height: 1, color: AppColors.divider)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _socialButton(Icons.chat_bubble, const Color(0xFF07C160)),
+                const SizedBox(width: 24),
+                _socialButton(Icons.phone_iphone, AppColors.textPrimary),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              '登录即代表同意《用户协议》和《隐私政策》',
+              style: TextStyle(fontSize: 11, color: AppColors.textPlaceholder),
+            ),
+            const SizedBox(height: 40),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _socialButton(IconData icon, Color color) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: const Color(0xFFE8E8E8)),
+      ),
+      child: Icon(icon, color: color, size: 22),
     );
   }
 }
