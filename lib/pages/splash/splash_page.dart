@@ -1,12 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../app/routes.dart';
+import '../../core/network/ws_client.dart';
+import '../../core/storage/local_storage.dart';
 
 class SplashPage extends StatelessWidget {
   const SplashPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    Get.put(WsClient(), permanent: true);
+
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (LocalStorage.token != null) {
+        Get.find<WsClient>().connect();
+        Get.offAllNamed(AppRoutes.home);
+      } else {
+        Get.offAllNamed(AppRoutes.login);
+      }
+    });
+
     return const Scaffold(
-      body: Center(child: Text('SplashPage')),
+      body: Center(
+        child: Text(
+          '三言',
+          style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
+        ),
+      ),
     );
   }
 }
