@@ -8,29 +8,27 @@ import 'req/list_conversations_req.dart';
 import 'req/list_messages_req.dart';
 import 'req/mark_read_req.dart';
 
-class CharacterApi {
+abstract class ChatApi {
   static final _client = ApiClient();
 
-  static Future<ApiResponse<List<Character>>> list() =>
+  // Character
+  static Future<ApiResponse<List<Character>>> listCharacters() =>
       _client.send(
         ListCharactersReq(),
         fromData: (d) => (d as List).map((e) => Character.fromJson(e)).toList(),
       );
 
-  static Future<ApiResponse<Character>> detail(int id) =>
+  static Future<ApiResponse<Character>> getCharacter(int id) =>
       _client.send(GetCharacterReq(id: id), fromData: (d) => Character.fromJson(d));
-}
 
-class ConversationApi {
-  static final _client = ApiClient();
-
-  static Future<ApiResponse<List<Conversation>>> list() =>
+  // Conversation
+  static Future<ApiResponse<List<Conversation>>> listConversations() =>
       _client.send(
         ListConversationsReq(),
         fromData: (d) => (d as List).map((e) => Conversation.fromJson(e)).toList(),
       );
 
-  static Future<ApiResponse<List<Message>>> messages(
+  static Future<ApiResponse<List<Message>>> listMessages(
     int convId, {
     int? beforeId,
     int limit = 20,

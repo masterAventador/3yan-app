@@ -23,7 +23,7 @@ class ChatController extends GetxController {
     super.onInit();
     _loadHistory();
     _listenWs();
-    ConversationApi.markRead(conversation.id);
+    ChatApi.markRead(conversation.id);
     // 通知首页：正在查看这个会话（延迟到 build 完成后执行，避免在 build 阶段触发 Obx 重建）
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (Get.isRegistered<HomeController>()) {
@@ -35,7 +35,7 @@ class ChatController extends GetxController {
 
   Future<void> _loadHistory() async {
     try {
-      final resp = await ConversationApi.messages(conversation.id);
+      final resp = await ChatApi.listMessages(conversation.id);
       if (resp.success && resp.data != null) {
         messages.value = resp.data!;
       }
@@ -61,7 +61,7 @@ class ChatController extends GetxController {
             final msg = Message.fromJson(event.message!);
             messages.add(msg);
             _scrollToBottom();
-            ConversationApi.markRead(conversation.id);
+            ChatApi.markRead(conversation.id);
           }
           break;
         case 'ack':

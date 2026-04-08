@@ -1,7 +1,7 @@
 import 'package:sanyan_network/sanyan_network.dart';
 import 'req/update_push_token_req.dart';
 
-class DeviceApi {
+abstract class DeviceApi {
   static final _client = ApiClient();
 
   static Future<ApiResponse> updatePushToken(String pushToken, String deviceType) =>

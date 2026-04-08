@@ -4,7 +4,7 @@ import 'req/register_req.dart';
 import 'req/login_req.dart';
 import 'req/reset_password_req.dart';
 
-class AuthApi {
+abstract class AuthApi {
   static final _client = ApiClient();
 
   static Future<ApiResponse> sendSms(String phone) =>

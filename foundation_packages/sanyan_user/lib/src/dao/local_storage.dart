@@ -1,31 +1,32 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:get_storage/get_storage.dart';
 
 class LocalStorage {
-  static late SharedPreferences _prefs;
+  static late GetStorage _box;
 
   static Future<void> init() async {
-    _prefs = await SharedPreferences.getInstance();
+    await GetStorage.init();
+    _box = GetStorage();
   }
 
-  static String? get token => _prefs.getString('token');
+  static String? get token => _box.read('token');
   static set token(String? value) {
     if (value == null) {
-      _prefs.remove('token');
+      _box.remove('token');
     } else {
-      _prefs.setString('token', value);
+      _box.write('token', value);
     }
   }
 
-  static int? get userId => _prefs.getInt('userId');
+  static int? get userId => _box.read('userId');
   static set userId(int? value) {
     if (value == null) {
-      _prefs.remove('userId');
+      _box.remove('userId');
     } else {
-      _prefs.setInt('userId', value);
+      _box.write('userId', value);
     }
   }
 
   static void clear() {
-    _prefs.clear();
+    _box.erase();
   }
 }

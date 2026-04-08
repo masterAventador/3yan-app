@@ -4,6 +4,7 @@ import 'package:sanyan_network/sanyan_network.dart';
 import '../api/chat_api.dart';
 import '../models/conversation.dart';
 
+
 class HomeController extends GetxController {
   final conversations = <Conversation>[].obs;
   final isLoading = true.obs;
@@ -21,7 +22,7 @@ class HomeController extends GetxController {
 
   Future<void> loadConversations() async {
     try {
-      final resp = await ConversationApi.list();
+      final resp = await ChatApi.listConversations();
       if (resp.success && resp.data != null) {
         conversations.value = resp.data!;
       }

@@ -9,7 +9,7 @@ dependencies:
   flutter:
     sdk: flutter
   get: ^4.6.6
-  shared_preferences: ^2.2.3
+  get_storage: ^2.1.1
   sanyan_network:
     path: ../sanyan_network
   sanyan_common_ui:
