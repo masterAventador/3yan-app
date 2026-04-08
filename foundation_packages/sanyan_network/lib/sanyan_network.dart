@@ -1,3 +1,4 @@
 export 'src/api_client.dart';
 export 'src/api_response.dart';
+export 'src/base_req.dart';
 export 'src/ws_client.dart';

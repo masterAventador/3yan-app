@@ -10,31 +10,14 @@ class RegisterPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = Get.put(RegisterController());
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('创建账号'),
+        centerTitle: false,
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: SizedBox(
-                height: 52,
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => Get.back(),
-                      child: const Icon(Icons.chevron_left, size: 28, color: AppColors.textPrimary),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      '创建账号',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
             // Subtitle
             const Padding(
               padding: EdgeInsets.fromLTRB(28, 8, 28, 20),

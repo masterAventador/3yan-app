@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import 'api_response.dart';
+import 'base_req.dart';
 
 /// Provides the token for API requests.
 /// Must be set before making authenticated requests.
@@ -55,5 +56,20 @@ class ApiClient {
   }) async {
     final resp = await _dio.put(path, data: data);
     return ApiResponse.fromJson(resp.data, fromData);
+  }
+
+  Future<ApiResponse<T>> send<T>(BaseReq req, {
+    T Function(dynamic)? fromData,
+  }) async {
+    switch (req.method) {
+      case 'GET':
+        return get(req.path, params: req.queryParams, fromData: fromData);
+      case 'POST':
+        return post(req.path, data: req.toJson(), fromData: fromData);
+      case 'PUT':
+        return put(req.path, data: req.toJson(), fromData: fromData);
+      default:
+        throw UnsupportedError('Unsupported method: ${req.method}');
+    }
   }
 }

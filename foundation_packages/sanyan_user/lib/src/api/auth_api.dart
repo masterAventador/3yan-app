@@ -1,10 +1,14 @@
 import 'package:sanyan_network/sanyan_network.dart';
+import 'req/send_sms_req.dart';
+import 'req/register_req.dart';
+import 'req/login_req.dart';
+import 'req/reset_password_req.dart';
 
 class AuthApi {
   static final _client = ApiClient();
 
   static Future<ApiResponse> sendSms(String phone) =>
-      _client.post('/api/auth/sms/send', data: {'phone': phone});
+      _client.send(SendSmsReq(phone: phone));
 
   static Future<ApiResponse<Map<String, dynamic>>> register({
     required String phone,
@@ -12,9 +16,8 @@ class AuthApi {
     required String password,
     String? nickname,
   }) =>
-      _client.post(
-        '/api/auth/register',
-        data: {'phone': phone, 'code': code, 'password': password, 'nickname': nickname},
+      _client.send(
+        RegisterReq(phone: phone, code: code, password: password, nickname: nickname),
         fromData: (d) => d as Map<String, dynamic>,
       );
 
@@ -22,9 +25,8 @@ class AuthApi {
     required String phone,
     required String password,
   }) =>
-      _client.post(
-        '/api/auth/login',
-        data: {'phone': phone, 'password': password},
+      _client.send(
+        LoginReq(phone: phone, password: password),
         fromData: (d) => d as Map<String, dynamic>,
       );
 
@@ -33,8 +35,5 @@ class AuthApi {
     required String code,
     required String newPassword,
   }) =>
-      _client.post(
-        '/api/auth/password/reset',
-        data: {'phone': phone, 'code': code, 'newPassword': newPassword},
-      );
+      _client.send(ResetPasswordReq(phone: phone, code: code, newPassword: newPassword));
 }

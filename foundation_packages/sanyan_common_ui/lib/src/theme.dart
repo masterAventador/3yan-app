@@ -40,6 +40,19 @@ class AppTheme {
           foregroundColor: AppColors.textPrimary,
           elevation: 0,
           scrolledUnderElevation: 0,
+          centerTitle: true,
+          titleTextStyle: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+          iconTheme: IconThemeData(
+            color: AppColors.textPrimary,
+            size: 28,
+          ),
+        ),
+        actionIconTheme: ActionIconThemeData(
+          backButtonIconBuilder: (context) => const Icon(Icons.chevron_left, size: 28),
         ),
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.brandButton,

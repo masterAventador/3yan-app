@@ -24,10 +24,13 @@ class ChatController extends GetxController {
     _loadHistory();
     _listenWs();
     ConversationApi.markRead(conversation.id);
-    // 通知首页：正在查看这个会话
-    if (Get.isRegistered<HomeController>()) {
-      Get.find<HomeController>().enterChat(conversation.id);
-    }
+    // 通知首页：正在查看这个会话（延迟到 build 完成后执行，避免在 build 阶段触发 Obx 重建）
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().enterChat(conversation.id);
+      }
+    });
+
   }
 
   Future<void> _loadHistory() async {
