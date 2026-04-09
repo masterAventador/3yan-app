@@ -5,3 +5,6 @@ export 'src/chat/chat_controller.dart';
 export 'src/models/character.dart';
 export 'src/models/conversation.dart';
 export 'src/models/message.dart';
+export 'src/contacts/contacts_page.dart';
+export 'src/settings/settings_page.dart';
+export 'src/status/status_page.dart';

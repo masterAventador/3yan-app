@@ -4,4 +4,7 @@ class AppRoutes {
   static const register = '/register';
   static const home = '/home';
   static const chat = '/chat';
+  static const contacts = '/contacts';
+  static const settings = '/settings';
+  static const status = '/status';
 }

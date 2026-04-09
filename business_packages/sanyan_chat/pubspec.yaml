@@ -18,6 +18,7 @@ dependencies:
     path: ../../foundation_packages/sanyan_common_ui
   sanyan_routes:
     path: ../../foundation_packages/sanyan_routes
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:
