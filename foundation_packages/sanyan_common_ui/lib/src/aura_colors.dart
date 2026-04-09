@@ -56,20 +56,4 @@ class AuraColors {
   static const Color glassBorder = Color(0x33FFFFFF); // white / 20%
   static const Color glassShadow = Color(0x1400393A); // #00393A / 8%
 
-  // ── Backward-compat aliases (delete after all pages rewritten) ────────────
-
-  static const LinearGradient brandGradient = mintAzureGradient;
-  static const LinearGradient buttonGradient = mintAzureGradient;
-  static const Color brandButton = primary;
-  static const Color brandStart = primaryFixed;
-  static const Color brandEnd = secondary;
-  static const Color accent = primary;
-  static const Color textPrimary = onSurface;
-  static const Color textSecondary = onSurfaceVariant;
-  static const Color textPlaceholder = outlineVariant;
-  static const Color background = surfaceContainerLowest;
-  static const Color inputFill = surfaceContainerHighest;
-  static const Color divider = surfaceContainerLow;
-  static const Color border = outlineVariant;
-  static const Color aiBubble = surfaceContainerLowest;
 }

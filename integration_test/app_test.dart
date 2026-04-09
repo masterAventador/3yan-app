@@ -33,19 +33,24 @@ void main() {
     debugPrint('[E2E] Step 1: 登录页，跳转注册');
     expect(find.text('三言'), findsOneWidget);
 
-    await tester.tap(find.text('没有账号？立即注册'));
+    // 注册链接用 RichText 渲染，只能通过"立即注册"这段文字找到
+    await tester.tap(find.text('立即注册'));
     await tester.pumpAndSettle(const Duration(seconds: 1));
 
     // ========== Step 2: 注册 ==========
     debugPrint('[E2E] Step 2: 注册页');
-    expect(find.text('创建账号'), findsOneWidget);
+    expect(find.text('加入三言'), findsOneWidget);
 
-    // 找所有输入框：手机号、验证码、密码、昵称
+    // 找所有输入框：昵称、手机号、验证码、密码（注册页字段顺序）
     final textFields = find.byType(TextField);
     expect(textFields, findsNWidgets(4));
 
-    // 输入手机号
-    await tester.enterText(textFields.at(0), testPhone);
+    // 输入昵称（第 0 个）
+    await tester.enterText(textFields.at(0), testNickname);
+    await tester.pumpAndSettle();
+
+    // 输入手机号（第 1 个）
+    await tester.enterText(textFields.at(1), testPhone);
     await tester.pumpAndSettle();
     debugPrint('[E2E] 手机号: $testPhone');
 
@@ -54,16 +59,12 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 1));
     debugPrint('[E2E] 已点击获取验证码');
 
-    // 输入验证码（测试服务端接受任意6位数字）
-    await tester.enterText(textFields.at(1), '123456');
+    // 输入验证码（第 2 个，测试服务端接受任意6位数字）
+    await tester.enterText(textFields.at(2), '123456');
     await tester.pumpAndSettle();
 
-    // 输入密码
-    await tester.enterText(textFields.at(2), testPassword);
-    await tester.pumpAndSettle();
-
-    // 输入昵称
-    await tester.enterText(textFields.at(3), testNickname);
+    // 输入密码（第 3 个）
+    await tester.enterText(textFields.at(3), testPassword);
     await tester.pumpAndSettle();
 
     // 点注册按钮
@@ -83,7 +84,8 @@ void main() {
       // 如果注册失败（手机号已存在等），用兜底账号
       if (!onLoginPage) {
         debugPrint('[E2E] 注册可能失败，返回登录页');
-        await tester.tap(find.text('已有账号？返回登录'));
+        // 返回链接用 RichText 渲染，只能通过"返回登录"这段文字找到
+        await tester.tap(find.text('返回登录'));
         await tester.pumpAndSettle(const Duration(seconds: 1));
         loginPhone = fallbackPhone;
         loginPassword = fallbackPassword;
@@ -139,8 +141,8 @@ void main() {
     await tester.enterText(chatInput, testMessage);
     await tester.pumpAndSettle();
 
-    // 点发送按钮（圆形橘色按钮里的箭头图标）
-    await tester.tap(find.byIcon(Icons.arrow_upward));
+    // 点发送按钮（圆形渐变按钮里的发送图标）
+    await tester.tap(find.byIcon(Icons.send_rounded));
     await tester.pumpAndSettle();
 
     // 消息应出现在列表中
