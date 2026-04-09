@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sanyan_network/sanyan_network.dart';
 import '../api/chat_api.dart';
-import '../home/home_controller.dart';
+import '../home/conversation_list_controller.dart';
 import '../models/conversation.dart';
 import '../models/message.dart';
 
@@ -26,8 +26,8 @@ class ChatController extends GetxController {
     ChatApi.markRead(conversation.id);
     // 通知首页：正在查看这个会话（延迟到 build 完成后执行，避免在 build 阶段触发 Obx 重建）
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (Get.isRegistered<HomeController>()) {
-        Get.find<HomeController>().enterChat(conversation.id);
+      if (Get.isRegistered<ConversationListController>()) {
+        Get.find<ConversationListController>().enterChat(conversation.id);
       }
     });
 
@@ -110,8 +110,8 @@ class ChatController extends GetxController {
     inputController.dispose();
     scrollController.dispose();
     // 通知首页：离开聊天页，刷新列表
-    if (Get.isRegistered<HomeController>()) {
-      Get.find<HomeController>().leaveChat();
+    if (Get.isRegistered<ConversationListController>()) {
+      Get.find<ConversationListController>().leaveChat();
     }
     super.onClose();
   }

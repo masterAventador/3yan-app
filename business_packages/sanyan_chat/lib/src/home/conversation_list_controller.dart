@@ -5,7 +5,7 @@ import '../api/chat_api.dart';
 import '../models/conversation.dart';
 
 
-class HomeController extends GetxController {
+class ConversationListController extends GetxController {
   final conversations = <Conversation>[].obs;
   final isLoading = true.obs;
   StreamSubscription? _wsSubscription;

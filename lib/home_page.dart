@@ -13,7 +13,7 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentTab = 0.obs;
     final pages = [
-      const MessagesTab(),
+      const ConversationListPage(),
       const ContactsPage(),
       const StatusPage(),
       const SettingsPage(),

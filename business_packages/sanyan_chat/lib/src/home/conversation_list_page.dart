@@ -4,14 +4,14 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import 'package:sanyan_routes/sanyan_routes.dart';
 import '../models/conversation.dart';
-import 'home_controller.dart';
+import 'conversation_list_controller.dart';
 
-class MessagesTab extends StatelessWidget {
-  const MessagesTab({super.key});
+class ConversationListPage extends StatelessWidget {
+  const ConversationListPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final c = Get.put(HomeController());
+    final c = Get.put(ConversationListController());
     return SafeArea(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,6 +156,7 @@ class _ConversationItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () => Get.toNamed(AppRoutes.chat, arguments: conversation),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
