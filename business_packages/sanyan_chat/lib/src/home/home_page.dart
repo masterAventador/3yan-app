@@ -3,78 +3,40 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import 'package:sanyan_routes/sanyan_routes.dart';
-import '../contacts/contacts_page.dart';
-import '../settings/settings_page.dart';
-import '../status/status_page.dart';
 import '../models/conversation.dart';
 import 'home_controller.dart';
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+class MessagesTab extends StatelessWidget {
+  const MessagesTab({super.key});
 
   @override
   Widget build(BuildContext context) {
     final c = Get.put(HomeController());
-    final currentTab = 0.obs;
-    final pages = [
-      _MessagesTab(c: c),
-      const ContactsPage(),
-      const StatusPage(),
-      const SettingsPage(),
-    ];
-    return Scaffold(
-      backgroundColor: AuraColors.surface,
-      body: Obx(() => IndexedStack(index: currentTab.value, children: pages)),
-      bottomNavigationBar: Obx(
-        () => AuraNavBar(
-          currentIndex: currentTab.value,
-          onTap: (i) => currentTab.value = i,
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Messages Tab
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _MessagesTab extends StatelessWidget {
-  final HomeController c;
-  const _MessagesTab({required this.c});
-
-  @override
-  Widget build(BuildContext context) {
     return SafeArea(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Top bar ────────────────────────────────────────────────────────
+          // Top bar
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
             child: Row(
               children: [
-                // Logo avatar
                 Container(
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: AuraColors.surfaceContainerLowest,
-                    border: Border.all(
-                      color: AuraColors.primaryFixed,
-                      width: 2,
-                    ),
+                    border: Border.all(color: AuraColors.primaryFixed, width: 2),
                   ),
                   child: ClipOval(
                     child: Image.asset(
-                      'assets/images/logo.png',
+                      'packages/sanyan_auth/assets/images/logo.png',
                       fit: BoxFit.cover,
                     ),
                   ),
                 ),
                 const SizedBox(width: 10),
-                // "三言" gradient text
                 ShaderMask(
                   shaderCallback: (bounds) =>
                       AuraColors.userBubbleGradient.createShader(bounds),
@@ -88,7 +50,6 @@ class _MessagesTab extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                // Search icon
                 GestureDetector(
                   onTap: () {},
                   child: Container(
@@ -111,7 +72,7 @@ class _MessagesTab extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // ── Search box ────────────────────────────────────────────────────
+          // Search box
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Container(
@@ -123,18 +84,11 @@ class _MessagesTab extends StatelessWidget {
               child: Row(
                 children: [
                   const SizedBox(width: 16),
-                  const Icon(
-                    Icons.search_rounded,
-                    color: AuraColors.onSurfaceVariant,
-                    size: 20,
-                  ),
+                  const Icon(Icons.search_rounded, color: AuraColors.onSurfaceVariant, size: 20),
                   const SizedBox(width: 10),
                   Text(
                     '搜索对话...',
-                    style: GoogleFonts.manrope(
-                      fontSize: 14,
-                      color: AuraColors.outlineVariant,
-                    ),
+                    style: GoogleFonts.manrope(fontSize: 14, color: AuraColors.outlineVariant),
                   ),
                 ],
               ),
@@ -143,7 +97,7 @@ class _MessagesTab extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // ── "Messages" title ──────────────────────────────────────────────
+          // Messages title
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Text(
@@ -158,23 +112,19 @@ class _MessagesTab extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // ── Conversation list ─────────────────────────────────────────────
+          // Conversation list
           Expanded(
             child: Obx(() {
               if (c.isLoading.value && c.conversations.isEmpty) {
                 return const Center(
-                  child: CircularProgressIndicator(
-                    color: AuraColors.primary,
-                  ),
+                  child: CircularProgressIndicator(color: AuraColors.primary),
                 );
               }
               if (c.conversations.isEmpty) {
                 return Center(
                   child: Text(
                     '还没有对话，开始聊天吧',
-                    style: GoogleFonts.manrope(
-                      color: AuraColors.onSurfaceVariant,
-                    ),
+                    style: GoogleFonts.manrope(color: AuraColors.onSurfaceVariant),
                   ),
                 );
               }
@@ -197,10 +147,6 @@ class _MessagesTab extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Conversation list item — Stitch Ethereal style
-// ─────────────────────────────────────────────────────────────────────────────
-
 class _ConversationItem extends StatelessWidget {
   final Conversation conversation;
   const _ConversationItem({required this.conversation});
@@ -220,16 +166,15 @@ class _ConversationItem extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: AuraColors.glassShadow,
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+                    color: const Color(0xFF00393A).withValues(alpha: 0.06),
+                    blurRadius: 40,
+                    offset: const Offset(0, 20),
                   ),
                 ],
               )
             : null,
         child: Row(
           children: [
-            // ── Avatar with online dot ──────────────────────────────────────
             SizedBox(
               width: 56,
               height: 56,
@@ -243,13 +188,8 @@ class _ConversationItem extends StatelessWidget {
                       shape: BoxShape.circle,
                       gradient: AuraColors.mintAzureGradient,
                     ),
-                    child: const Icon(
-                      Icons.favorite,
-                      color: Colors.white,
-                      size: 26,
-                    ),
+                    child: const Icon(Icons.favorite, color: Colors.white, size: 26),
                   ),
-                  // Online green dot
                   Positioned(
                     right: 0,
                     bottom: 0,
@@ -259,25 +199,18 @@ class _ConversationItem extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: const Color(0xFF34C759),
                         shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AuraColors.surface,
-                          width: 2,
-                        ),
+                        border: Border.all(color: AuraColors.surface, width: 2),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-
             const SizedBox(width: 14),
-
-            // ── Name / preview / badge ──────────────────────────────────────
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Name + time
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -298,10 +231,7 @@ class _ConversationItem extends StatelessWidget {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 5),
-
-                  // Preview + unread badge
                   Row(
                     children: [
                       Expanded(
@@ -311,12 +241,8 @@ class _ConversationItem extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.manrope(
                             fontSize: 14,
-                            color: _hasUnread
-                                ? AuraColors.onSurface
-                                : AuraColors.onSurfaceVariant,
-                            fontWeight: _hasUnread
-                                ? FontWeight.w500
-                                : FontWeight.w400,
+                            color: _hasUnread ? AuraColors.onSurface : AuraColors.onSurfaceVariant,
+                            fontWeight: _hasUnread ? FontWeight.w500 : FontWeight.w400,
                           ),
                         ),
                       ),

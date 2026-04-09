@@ -636,6 +636,13 @@ packages:
       relative: true
     source: path
     version: "0.0.0"
+  sanyan_contacts:
+    dependency: "direct main"
+    description:
+      path: "business_packages/sanyan_contacts"
+      relative: true
+    source: path
+    version: "0.0.0"
   sanyan_network:
     dependency: "direct main"
     description:
@@ -647,6 +654,20 @@ packages:
     dependency: "direct main"
     description:
       path: "foundation_packages/sanyan_routes"
+      relative: true
+    source: path
+    version: "0.0.0"
+  sanyan_settings:
+    dependency: "direct main"
+    description:
+      path: "business_packages/sanyan_settings"
+      relative: true
+    source: path
+    version: "0.0.0"
+  sanyan_status:
+    dependency: "direct main"
+    description:
+      path: "business_packages/sanyan_status"
       relative: true
     source: path
     version: "0.0.0"

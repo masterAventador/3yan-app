@@ -29,6 +29,12 @@ dependencies:
     path: business_packages/sanyan_auth
   sanyan_chat:
     path: business_packages/sanyan_chat
+  sanyan_contacts:
+    path: business_packages/sanyan_contacts
+  sanyan_settings:
+    path: business_packages/sanyan_settings
+  sanyan_status:
+    path: business_packages/sanyan_status
 
 dev_dependencies:
   flutter_test:
@@ -42,5 +48,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  assets:
-    - assets/images/

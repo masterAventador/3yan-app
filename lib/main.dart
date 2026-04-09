@@ -6,6 +6,7 @@ import 'package:sanyan_routes/sanyan_routes.dart';
 import 'package:sanyan_user/sanyan_user.dart';
 import 'package:sanyan_auth/sanyan_auth.dart';
 import 'package:sanyan_chat/sanyan_chat.dart';
+import 'home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

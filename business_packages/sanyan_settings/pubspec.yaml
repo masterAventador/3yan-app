@@ -1,5 +1,5 @@
-name: sanyan_auth
-description: Auth business module (login, register, splash)
+name: sanyan_settings
+description: Settings business module
 publish_to: 'none'
 
 environment:
@@ -9,18 +9,11 @@ dependencies:
   flutter:
     sdk: flutter
   get: ^4.6.6
-  sanyan_network:
-    path: ../../foundation_packages/sanyan_network
-  sanyan_user:
-    path: ../../foundation_packages/sanyan_user
+  google_fonts: ^6.2.1
   sanyan_common_ui:
     path: ../../foundation_packages/sanyan_common_ui
   sanyan_routes:
     path: ../../foundation_packages/sanyan_routes
-
-flutter:
-  assets:
-    - assets/images/
 
 dev_dependencies:
   flutter_test:

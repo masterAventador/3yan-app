@@ -37,7 +37,7 @@ class LoginPage extends StatelessWidget {
                     // Logo
                     Center(
                       child: Image.asset(
-                        'assets/images/logo.png',
+                        'packages/sanyan_auth/assets/images/logo.png',
                         height: 80,
                       ),
                     ),
