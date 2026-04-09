@@ -9,6 +9,7 @@ dependencies:
   flutter:
     sdk: flutter
   get: ^4.6.6
+  audioplayers: ^6.1.0
   sanyan_network:
     path: ../../foundation_packages/sanyan_network
   sanyan_user:
