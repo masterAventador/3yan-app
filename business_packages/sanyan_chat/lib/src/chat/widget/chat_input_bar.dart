@@ -22,15 +22,15 @@ class ChatInputBar extends StatelessWidget {
               child: Container(
                 height: 42,
                 decoration: BoxDecoration(
-                  color: AppColors.inputFill,
+                  color: AuraColors.inputFill,
                   borderRadius: BorderRadius.circular(21),
                 ),
                 child: TextField(
                   controller: controller,
-                  style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
+                  style: const TextStyle(fontSize: 15, color: AuraColors.textPrimary),
                   decoration: const InputDecoration(
                     hintText: '说点什么...',
-                    hintStyle: TextStyle(color: AppColors.textPlaceholder, fontSize: 15),
+                    hintStyle: TextStyle(color: AuraColors.textPlaceholder, fontSize: 15),
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     isDense: true,
@@ -48,7 +48,7 @@ class ChatInputBar extends StatelessWidget {
                 height: 42,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: AppColors.buttonGradient,
+                  gradient: AuraColors.buttonGradient,
                 ),
                 child: const Icon(Icons.arrow_upward, color: Colors.white, size: 20),
               ),

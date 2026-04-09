@@ -22,10 +22,10 @@ class LoginPage extends StatelessWidget {
               height: 72,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(18),
-                gradient: AppColors.brandGradient,
+                gradient: AuraColors.brandGradient,
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.brandEnd.withValues(alpha: 0.25),
+                    color: AuraColors.brandEnd.withValues(alpha: 0.25),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -43,7 +43,7 @@ class LoginPage extends StatelessWidget {
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                color: AuraColors.textPrimary,
                 letterSpacing: 3,
               ),
             ),
@@ -52,7 +52,7 @@ class LoginPage extends StatelessWidget {
               'AI 陪伴，懂你所言',
               style: TextStyle(
                 fontSize: 15,
-                color: AppColors.textSecondary,
+                color: AuraColors.textSecondary,
               ),
             ),
 
@@ -66,7 +66,7 @@ class LoginPage extends StatelessWidget {
                   Container(
                     height: 52,
                     decoration: BoxDecoration(
-                      color: AppColors.inputFill,
+                      color: AuraColors.inputFill,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -77,20 +77,20 @@ class LoginPage extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
-                            color: AppColors.textPrimary,
+                            color: AuraColors.textPrimary,
                           ),
                         ),
                         const SizedBox(width: 10),
-                        Container(width: 1, height: 24, color: AppColors.border),
+                        Container(width: 1, height: 24, color: AuraColors.border),
                         const SizedBox(width: 10),
                         Expanded(
                           child: TextField(
                             controller: c.phoneController,
                             keyboardType: TextInputType.phone,
-                            style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
+                            style: const TextStyle(fontSize: 16, color: AuraColors.textPrimary),
                             decoration: const InputDecoration(
                               hintText: '手机号',
-                              hintStyle: TextStyle(color: AppColors.textPlaceholder, fontSize: 16),
+                              hintStyle: TextStyle(color: AuraColors.textPlaceholder, fontSize: 16),
                               border: InputBorder.none,
                               contentPadding: EdgeInsets.zero,
                               isDense: true,
@@ -108,7 +108,7 @@ class LoginPage extends StatelessWidget {
                   Container(
                     height: 52,
                     decoration: BoxDecoration(
-                      color: AppColors.inputFill,
+                      color: AuraColors.inputFill,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -118,10 +118,10 @@ class LoginPage extends StatelessWidget {
                           child: Obx(() => TextField(
                                 controller: c.passwordController,
                                 obscureText: c.obscurePassword.value,
-                                style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
+                                style: const TextStyle(fontSize: 16, color: AuraColors.textPrimary),
                                 decoration: const InputDecoration(
                                   hintText: '密码',
-                                  hintStyle: TextStyle(color: AppColors.textPlaceholder, fontSize: 16),
+                                  hintStyle: TextStyle(color: AuraColors.textPlaceholder, fontSize: 16),
                                   border: InputBorder.none,
                                   contentPadding: EdgeInsets.zero,
                                   isDense: true,
@@ -133,7 +133,7 @@ class LoginPage extends StatelessWidget {
                               onTap: () => c.obscurePassword.toggle(),
                               child: Icon(
                                 c.obscurePassword.value ? Icons.visibility_off : Icons.visibility,
-                                color: AppColors.textPlaceholder,
+                                color: AuraColors.textPlaceholder,
                                 size: 20,
                               ),
                             )),
@@ -150,7 +150,7 @@ class LoginPage extends StatelessWidget {
                         child: Container(
                           height: 52,
                           decoration: BoxDecoration(
-                            gradient: AppColors.buttonGradient,
+                            gradient: AuraColors.buttonGradient,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           alignment: Alignment.center,
@@ -182,7 +182,7 @@ class LoginPage extends StatelessWidget {
                     children: [
                       const Text(
                         '忘记密码？',
-                        style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                        style: TextStyle(fontSize: 14, color: AuraColors.textSecondary),
                       ),
                       GestureDetector(
                         onTap: () => Get.toNamed(AppRoutes.register),
@@ -191,7 +191,7 @@ class LoginPage extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: AppColors.accent,
+                            color: AuraColors.accent,
                           ),
                         ),
                       ),
@@ -208,15 +208,15 @@ class LoginPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 28),
               child: Row(
                 children: [
-                  Expanded(child: Container(height: 1, color: AppColors.divider)),
+                  Expanded(child: Container(height: 1, color: AuraColors.divider)),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
                       '其他方式',
-                      style: TextStyle(fontSize: 12, color: AppColors.textPlaceholder),
+                      style: TextStyle(fontSize: 12, color: AuraColors.textPlaceholder),
                     ),
                   ),
-                  Expanded(child: Container(height: 1, color: AppColors.divider)),
+                  Expanded(child: Container(height: 1, color: AuraColors.divider)),
                 ],
               ),
             ),
@@ -226,13 +226,13 @@ class LoginPage extends StatelessWidget {
               children: [
                 _socialButton(Icons.chat_bubble, const Color(0xFF07C160)),
                 const SizedBox(width: 24),
-                _socialButton(Icons.phone_iphone, AppColors.textPrimary),
+                _socialButton(Icons.phone_iphone, AuraColors.textPrimary),
               ],
             ),
             const SizedBox(height: 16),
             const Text(
               '登录即代表同意《用户协议》和《隐私政策》',
-              style: TextStyle(fontSize: 11, color: AppColors.textPlaceholder),
+              style: TextStyle(fontSize: 11, color: AuraColors.textPlaceholder),
             ),
             const SizedBox(height: 40),
           ],

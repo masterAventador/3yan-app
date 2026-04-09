@@ -28,12 +28,12 @@ class HomePage extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: AuraColors.textPrimary,
                       ),
                     ),
                     GestureDetector(
                       onTap: () {/* TODO: new conversation */},
-                      child: const Icon(Icons.add_circle_outline, size: 24, color: AppColors.brandButton),
+                      child: const Icon(Icons.add_circle_outline, size: 24, color: AuraColors.brandButton),
                     ),
                   ],
                 ),
@@ -45,16 +45,16 @@ class HomePage extends StatelessWidget {
               child: Obx(() {
                 if (c.isLoading.value && c.conversations.isEmpty) {
                   return const Center(
-                    child: CircularProgressIndicator(color: AppColors.brandButton),
+                    child: CircularProgressIndicator(color: AuraColors.brandButton),
                   );
                 }
                 if (c.conversations.isEmpty) {
                   return const Center(
-                    child: Text('还没有对话，开始聊天吧', style: TextStyle(color: AppColors.textSecondary)),
+                    child: Text('还没有对话，开始聊天吧', style: TextStyle(color: AuraColors.textSecondary)),
                   );
                 }
                 return RefreshIndicator(
-                  color: AppColors.brandButton,
+                  color: AuraColors.brandButton,
                   onRefresh: c.loadConversations,
                   child: ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -103,7 +103,7 @@ class _ConversationItem extends StatelessWidget {
                     height: 52,
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: AppColors.brandGradient,
+                      gradient: AuraColors.brandGradient,
                     ),
                     child: const Icon(Icons.favorite, color: Colors.white, size: 24),
                   ),
@@ -142,12 +142,12 @@ class _ConversationItem extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                          color: AuraColors.textPrimary,
                         ),
                       ),
                       Text(
                         _formatTime(conversation.lastMessageAt),
-                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        style: const TextStyle(fontSize: 12, color: AuraColors.textSecondary),
                       ),
                     ],
                   ),
@@ -158,7 +158,7 @@ class _ConversationItem extends StatelessWidget {
                       conversation.lastMessage ?? '',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                      style: const TextStyle(fontSize: 14, color: AuraColors.textSecondary),
                     ),
                   ),
                 ],
@@ -213,7 +213,7 @@ class _BottomNavBar extends StatelessWidget {
   }
 
   Widget _tab(IconData icon, String label, bool active) {
-    final color = active ? AppColors.brandButton : AppColors.textSecondary;
+    final color = active ? AuraColors.brandButton : AuraColors.textSecondary;
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [

@@ -23,7 +23,7 @@ class RegisterPage extends StatelessWidget {
               padding: EdgeInsets.fromLTRB(28, 8, 28, 20),
               child: Text(
                 '加入三言，开始你的 AI 陪伴之旅',
-                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                style: TextStyle(fontSize: 14, color: AuraColors.textSecondary),
               ),
             ),
 
@@ -38,15 +38,15 @@ class RegisterPage extends StatelessWidget {
                       child: Row(
                         children: [
                           const SizedBox(width: 16),
-                          const Text('+86', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
+                          const Text('+86', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: AuraColors.textPrimary)),
                           const SizedBox(width: 10),
-                          Container(width: 1, height: 24, color: AppColors.border),
+                          Container(width: 1, height: 24, color: AuraColors.border),
                           const SizedBox(width: 10),
                           Expanded(
                             child: TextField(
                               controller: c.phoneController,
                               keyboardType: TextInputType.phone,
-                              style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
+                              style: const TextStyle(fontSize: 16, color: AuraColors.textPrimary),
                               decoration: _inputDecoration('手机号'),
                             ),
                           ),
@@ -67,7 +67,7 @@ class RegisterPage extends StatelessWidget {
                               child: TextField(
                                 controller: c.codeController,
                                 keyboardType: TextInputType.number,
-                                style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
+                                style: const TextStyle(fontSize: 16, color: AuraColors.textPrimary),
                                 decoration: _inputDecoration('验证码'),
                               ),
                             ),
@@ -81,7 +81,7 @@ class RegisterPage extends StatelessWidget {
                                 height: 52,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: AppColors.border),
+                                  border: Border.all(color: AuraColors.border),
                                 ),
                                 alignment: Alignment.center,
                                 child: Text(
@@ -89,7 +89,7 @@ class RegisterPage extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w500,
-                                    color: c.countdown.value > 0 ? AppColors.textSecondary : AppColors.accent,
+                                    color: c.countdown.value > 0 ? AuraColors.textSecondary : AuraColors.accent,
                                   ),
                                 ),
                               ),
@@ -108,11 +108,11 @@ class RegisterPage extends StatelessWidget {
                             child: TextField(
                               controller: c.passwordController,
                               obscureText: true,
-                              style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
+                              style: const TextStyle(fontSize: 16, color: AuraColors.textPrimary),
                               decoration: _inputDecoration('设置密码'),
                             ),
                           ),
-                          const Icon(Icons.visibility_off, color: AppColors.textPlaceholder, size: 20),
+                          const Icon(Icons.visibility_off, color: AuraColors.textPlaceholder, size: 20),
                           const SizedBox(width: 16),
                         ],
                       ),
@@ -126,7 +126,7 @@ class RegisterPage extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: TextField(
                           controller: c.nicknameController,
-                          style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
+                          style: const TextStyle(fontSize: 16, color: AuraColors.textPrimary),
                           decoration: _inputDecoration('昵称'),
                         ),
                       ),
@@ -140,7 +140,7 @@ class RegisterPage extends StatelessWidget {
                           child: Container(
                             height: 52,
                             decoration: BoxDecoration(
-                              gradient: AppColors.buttonGradient,
+                              gradient: AuraColors.buttonGradient,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             alignment: Alignment.center,
@@ -170,13 +170,13 @@ class RegisterPage extends StatelessWidget {
                     onTap: () => Get.back(),
                     child: const Text(
                       '已有账号？返回登录',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.accent),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AuraColors.accent),
                     ),
                   ),
                   const SizedBox(height: 8),
                   const Text(
                     '注册即代表同意《用户协议》和《隐私政策》',
-                    style: TextStyle(fontSize: 11, color: AppColors.textPlaceholder),
+                    style: TextStyle(fontSize: 11, color: AuraColors.textPlaceholder),
                   ),
                 ],
               ),
@@ -191,7 +191,7 @@ class RegisterPage extends StatelessWidget {
     return Container(
       height: 52,
       decoration: BoxDecoration(
-        color: AppColors.inputFill,
+        color: AuraColors.inputFill,
         borderRadius: BorderRadius.circular(12),
       ),
       child: child,
@@ -201,7 +201,7 @@ class RegisterPage extends StatelessWidget {
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: AppColors.textPlaceholder, fontSize: 16),
+      hintStyle: const TextStyle(color: AuraColors.textPlaceholder, fontSize: 16),
       border: InputBorder.none,
       contentPadding: EdgeInsets.zero,
       isDense: true,

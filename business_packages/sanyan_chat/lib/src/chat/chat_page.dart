@@ -22,7 +22,7 @@ class ChatPage extends StatelessWidget {
             Obx(() => c.isAiTyping.value
                 ? const Text(
                     '正在输入...',
-                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    style: TextStyle(fontSize: 12, color: AuraColors.textSecondary),
                   )
                 : const SizedBox.shrink()),
           ],
@@ -30,7 +30,7 @@ class ChatPage extends StatelessWidget {
         actions: const [
           Padding(
             padding: EdgeInsets.only(right: 16),
-            child: Icon(Icons.more_horiz, size: 24, color: AppColors.textSecondary),
+            child: Icon(Icons.more_horiz, size: 24, color: AuraColors.textSecondary),
           ),
         ],
       ),
@@ -42,7 +42,7 @@ class ChatPage extends StatelessWidget {
               child: Obx(() {
                 if (c.isLoading.value && c.messages.isEmpty) {
                   return const Center(
-                    child: CircularProgressIndicator(color: AppColors.brandButton),
+                    child: CircularProgressIndicator(color: AuraColors.brandButton),
                   );
                 }
                 return ListView.builder(

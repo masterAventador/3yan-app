@@ -51,7 +51,7 @@ class _MessageBubbleState extends State<MessageBubble> {
               height: 36,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: AppColors.brandGradient,
+                gradient: AuraColors.brandGradient,
               ),
               child: const Icon(Icons.favorite, color: Colors.white, size: 18),
             ),
@@ -72,7 +72,7 @@ class _MessageBubbleState extends State<MessageBubble> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: const BoxDecoration(
-          color: AppColors.aiBubble,
+          color: AuraColors.aiBubble,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(4),
             topRight: Radius.circular(16),
@@ -85,13 +85,13 @@ class _MessageBubbleState extends State<MessageBubble> {
           children: [
             Icon(
               _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
-              color: AppColors.brandButton,
+              color: AuraColors.brandButton,
               size: 32,
             ),
             const SizedBox(width: 10),
             Icon(
               Icons.graphic_eq,
-              color: _isPlaying ? AppColors.brandButton : AppColors.textSecondary,
+              color: _isPlaying ? AuraColors.brandButton : AuraColors.textSecondary,
               size: 20,
             ),
           ],
@@ -104,8 +104,8 @@ class _MessageBubbleState extends State<MessageBubble> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        gradient: isUser ? AppColors.buttonGradient : null,
-        color: isUser ? null : AppColors.aiBubble,
+        gradient: isUser ? AuraColors.buttonGradient : null,
+        color: isUser ? null : AuraColors.aiBubble,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(isUser ? 16 : 4),
           topRight: Radius.circular(isUser ? 4 : 16),
@@ -116,7 +116,7 @@ class _MessageBubbleState extends State<MessageBubble> {
       child: Text(
         widget.message.content,
         style: TextStyle(
-          color: isUser ? Colors.white : AppColors.textPrimary,
+          color: isUser ? Colors.white : AuraColors.textPrimary,
           fontSize: 15,
           height: 1.5,
         ),

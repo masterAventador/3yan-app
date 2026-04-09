@@ -26,7 +26,7 @@ class SanyanApp extends StatelessWidget {
     return GetMaterialApp(
       title: '三言',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
+      theme: AuraTheme.light,
       initialRoute: AppRoutes.splash,
       getPages: [
         GetPage(name: AppRoutes.splash, page: () => const SplashPage()),
