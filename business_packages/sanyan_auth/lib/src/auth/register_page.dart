@@ -10,86 +10,124 @@ class RegisterPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = Get.put(RegisterController());
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('创建账号'),
-        centerTitle: false,
-      ),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Subtitle
-            const Padding(
-              padding: EdgeInsets.fromLTRB(28, 8, 28, 20),
-              child: Text(
-                '加入三言，开始你的 AI 陪伴之旅',
-                style: TextStyle(fontSize: 14, color: AuraColors.textSecondary),
-              ),
-            ),
-
-            // Form
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.topCenter,
+            radius: 1.2,
+            colors: [
+              Color(0xFF73F1E4),
+              Color(0xFFE2FFFF),
+              Color(0xFFAED9FF),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+              child: GlassPanel(
+                borderRadius: 16,
+                padding: const EdgeInsets.all(32),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Phone
-                    _buildInput(
-                      child: Row(
-                        children: [
-                          const SizedBox(width: 16),
-                          const Text('+86', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: AuraColors.textPrimary)),
-                          const SizedBox(width: 10),
-                          Container(width: 1, height: 24, color: AuraColors.border),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextField(
-                              controller: c.phoneController,
-                              keyboardType: TextInputType.phone,
-                              style: const TextStyle(fontSize: 16, color: AuraColors.textPrimary),
-                              decoration: _inputDecoration('手机号'),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                        ],
+                    // Logo
+                    Center(
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        height: 56,
                       ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Title
+                    const Center(
+                      child: Text(
+                        '加入三言',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: AuraColors.onSurface,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+
+                    // Subtitle
+                    const Center(
+                      child: Text(
+                        '填写信息创建你的账号',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AuraColors.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 28),
+
+                    // Nickname input
+                    AuraInput(
+                      controller: c.nicknameController,
+                      label: '昵称',
+                      hintText: '请输入昵称',
+                      leadingIcon: Icons.person_outline,
                     ),
 
                     const SizedBox(height: 16),
 
-                    // Code
+                    // Phone input
+                    AuraInput(
+                      controller: c.phoneController,
+                      label: '手机号',
+                      hintText: '请输入手机号',
+                      leadingIcon: Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Code row: input + button
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Expanded(
-                          child: _buildInput(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              child: TextField(
-                                controller: c.codeController,
-                                keyboardType: TextInputType.number,
-                                style: const TextStyle(fontSize: 16, color: AuraColors.textPrimary),
-                                decoration: _inputDecoration('验证码'),
-                              ),
-                            ),
+                          child: AuraInput(
+                            controller: c.codeController,
+                            label: '验证码',
+                            hintText: '请输入验证码',
+                            leadingIcon: Icons.sms_outlined,
+                            keyboardType: TextInputType.number,
                           ),
                         ),
                         const SizedBox(width: 12),
                         Obx(() => GestureDetector(
                               onTap: c.countdown.value > 0 ? null : c.sendSms,
                               child: Container(
-                                width: 110,
-                                height: 52,
+                                height: 56,
+                                width: 100,
                                 decoration: BoxDecoration(
+                                  color: Colors.white,
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: AuraColors.border),
+                                  border: Border.all(
+                                    color: c.countdown.value > 0
+                                        ? AuraColors.outlineVariant
+                                        : AuraColors.primary,
+                                  ),
                                 ),
                                 alignment: Alignment.center,
                                 child: Text(
-                                  c.countdown.value > 0 ? '${c.countdown.value}s' : '获取验证码',
+                                  c.countdown.value > 0
+                                      ? '${c.countdown.value}s'
+                                      : '获取验证码',
                                   style: TextStyle(
                                     fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                    color: c.countdown.value > 0 ? AuraColors.textSecondary : AuraColors.accent,
+                                    fontWeight: FontWeight.w600,
+                                    color: c.countdown.value > 0
+                                        ? AuraColors.outlineVariant
+                                        : AuraColors.primary,
                                   ),
                                 ),
                               ),
@@ -99,112 +137,57 @@ class RegisterPage extends StatelessWidget {
 
                     const SizedBox(height: 16),
 
-                    // Password
-                    _buildInput(
-                      child: Row(
-                        children: [
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: TextField(
-                              controller: c.passwordController,
-                              obscureText: true,
-                              style: const TextStyle(fontSize: 16, color: AuraColors.textPrimary),
-                              decoration: _inputDecoration('设置密码'),
-                            ),
-                          ),
-                          const Icon(Icons.visibility_off, color: AuraColors.textPlaceholder, size: 20),
-                          const SizedBox(width: 16),
-                        ],
-                      ),
+                    // Password input
+                    AuraInput(
+                      controller: c.passwordController,
+                      label: '密码',
+                      hintText: '请设置密码',
+                      leadingIcon: Icons.lock_outline,
+                      obscureText: true,
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
 
-                    // Nickname
-                    _buildInput(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: TextField(
-                          controller: c.nicknameController,
-                          style: const TextStyle(fontSize: 16, color: AuraColors.textPrimary),
-                          decoration: _inputDecoration('昵称'),
+                    // Register button
+                    Obx(() => AuraButton(
+                          label: '注册',
+                          onPressed: c.isLoading.value ? null : c.register,
+                          isLoading: c.isLoading.value,
+                        )),
+
+                    const SizedBox(height: 24),
+
+                    // Back to login link
+                    Center(
+                      child: GestureDetector(
+                        onTap: () => Get.back(),
+                        child: RichText(
+                          text: const TextSpan(
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AuraColors.onSurfaceVariant,
+                            ),
+                            children: [
+                              TextSpan(text: '已有账号？ '),
+                              TextSpan(
+                                text: '返回登录',
+                                style: TextStyle(
+                                  color: AuraColors.primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-
-                    const SizedBox(height: 20),
-
-                    // Register button
-                    Obx(() => GestureDetector(
-                          onTap: c.isLoading.value ? null : c.register,
-                          child: Container(
-                            height: 52,
-                            decoration: BoxDecoration(
-                              gradient: AuraColors.buttonGradient,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            alignment: Alignment.center,
-                            child: c.isLoading.value
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                  )
-                                : const Text(
-                                    '注册',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
-                                  ),
-                          ),
-                        )),
                   ],
                 ),
               ),
             ),
-
-            // Bottom
-            Padding(
-              padding: const EdgeInsets.only(bottom: 40),
-              child: Column(
-                children: [
-                  GestureDetector(
-                    onTap: () => Get.back(),
-                    child: const Text(
-                      '已有账号？返回登录',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AuraColors.accent),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    '注册即代表同意《用户协议》和《隐私政策》',
-                    style: TextStyle(fontSize: 11, color: AuraColors.textPlaceholder),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
-    );
-  }
-
-  Widget _buildInput({required Widget child}) {
-    return Container(
-      height: 52,
-      decoration: BoxDecoration(
-        color: AuraColors.inputFill,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: child,
-    );
-  }
-
-  InputDecoration _inputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: AuraColors.textPlaceholder, fontSize: 16),
-      border: InputBorder.none,
-      contentPadding: EdgeInsets.zero,
-      isDense: true,
     );
   }
 }
