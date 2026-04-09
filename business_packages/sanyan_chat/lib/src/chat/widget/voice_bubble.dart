@@ -50,7 +50,9 @@ class _VoiceBubbleState extends State<VoiceBubble> {
 
     return GestureDetector(
       onTap: _togglePlay,
-      child: Container(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.6),
+        child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           gradient: isUser ? AuraColors.userBubbleGradient : null,
@@ -92,31 +94,41 @@ class _VoiceBubbleState extends State<VoiceBubble> {
             ),
             const SizedBox(width: 10),
             // Waveform bars
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: List.generate(15, (i) {
-                final h = _barHeights[i] * 28;
-                final color = isUser
-                    ? Colors.white.withValues(alpha: _isPlaying ? 0.9 : 0.5)
-                    : AuraColors.primary.withValues(alpha: _isPlaying ? 0.6 : 0.35);
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 1),
-                  child: AnimatedContainer(
-                    duration: Duration(milliseconds: _isPlaying ? 300 + i * 40 : 200),
-                    width: 3,
-                    height: _isPlaying ? h : h * 0.5,
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                );
-              }),
+            Flexible(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final barWidth = 3.0;
+                  final barSpacing = 2.0; // horizontal padding * 2
+                  final maxBars = ((constraints.maxWidth) / (barWidth + barSpacing)).floor().clamp(1, 15);
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: List.generate(maxBars, (i) {
+                      final h = _barHeights[i] * 28;
+                      final color = isUser
+                          ? Colors.white.withValues(alpha: _isPlaying ? 0.9 : 0.5)
+                          : AuraColors.primary.withValues(alpha: _isPlaying ? 0.6 : 0.35);
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 1),
+                        child: AnimatedContainer(
+                          duration: Duration(milliseconds: _isPlaying ? 300 + i * 40 : 200),
+                          width: 3,
+                          height: _isPlaying ? h : h * 0.5,
+                          decoration: BoxDecoration(
+                            color: color,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      );
+                    }),
+                  );
+                },
+              ),
             ),
             const SizedBox(width: 10),
             // Duration
             Text(
-              widget.message.content.isNotEmpty ? widget.message.content : '0:00',
+              '0:00', // TODO: 等后端 Message 增加 mediaDuration 字段后替换
               style: GoogleFonts.inter(
                 fontSize: 11,
                 color: isUser
@@ -126,6 +138,7 @@ class _VoiceBubbleState extends State<VoiceBubble> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
