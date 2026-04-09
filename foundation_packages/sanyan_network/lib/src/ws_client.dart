@@ -41,7 +41,7 @@ class WsClient extends GetxService {
   Timer? _reconnectTimer;
   bool _isConnected = false;
   int _reconnectAttempts = 0;
-  static const _maxReconnectAttempts = 10;
+  static const _maxReconnectAttempts = 20;
   static const _uuid = Uuid();
 
   final _eventController = StreamController<WsEvent>.broadcast();
@@ -53,6 +53,9 @@ class WsClient extends GetxService {
   static WsTokenProvider? tokenProvider;
 
   void connect() {
+    // 先清理旧连接，防止重复监听
+    _cleanup();
+
     final token = tokenProvider?.call();
     if (token == null) return;
 
@@ -72,16 +75,24 @@ class WsClient extends GetxService {
       _startHeartbeat();
       syncMessages();
     } catch (e) {
-      _scheduleReconnect();
+      _onDisconnected();
     }
   }
 
   void disconnect() {
-    _heartbeatTimer?.cancel();
     _reconnectTimer?.cancel();
-    _channel?.sink.close();
+    _cleanup();
+  }
+
+  /// 清理连接资源，不触发重连
+  void _cleanup() {
+    _heartbeatTimer?.cancel();
     _isConnected = false;
     isConnected.value = false;
+    try {
+      _channel?.sink.close();
+    } catch (_) {}
+    _channel = null;
   }
 
   String sendMessage(int conversationId, String content, {String contentType = 'text'}) {
@@ -101,8 +112,12 @@ class WsClient extends GetxService {
   }
 
   void _send(Map<String, dynamic> data) {
-    if (_isConnected && _channel != null) {
+    if (!_isConnected || _channel == null) return;
+    try {
       _channel!.sink.add(jsonEncode(data));
+    } catch (e) {
+      // sink 已关闭，触发重连
+      _onDisconnected();
     }
   }
 
@@ -117,9 +132,8 @@ class WsClient extends GetxService {
   }
 
   void _onDisconnected() {
-    _isConnected = false;
-    isConnected.value = false;
-    _heartbeatTimer?.cancel();
+    if (!_isConnected && _channel == null) return; // 已经处理过了
+    _cleanup();
     _scheduleReconnect();
   }
 
@@ -131,7 +145,15 @@ class WsClient extends GetxService {
   }
 
   void _scheduleReconnect() {
-    if (_reconnectAttempts >= _maxReconnectAttempts) return;
+    if (_reconnectAttempts >= _maxReconnectAttempts) {
+      // 达到上限后重置计数，延迟 60 秒再试，永不放弃
+      _reconnectAttempts = 0;
+      _reconnectTimer?.cancel();
+      _reconnectTimer = Timer(const Duration(seconds: 60), () {
+        connect();
+      });
+      return;
+    }
     _reconnectTimer?.cancel();
     final delay = Duration(seconds: 2 * (_reconnectAttempts + 1));
     _reconnectTimer = Timer(delay, () {
