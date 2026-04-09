@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
+import 'package:sanyan_network/sanyan_network.dart';
 import '../../models/message.dart';
 import 'voice_bubble.dart';
 import 'video_bubble.dart';
@@ -12,7 +13,7 @@ class MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isUser = message.senderType == 'user';
-    final isVideo = message.contentType == 'video';
+    final isVideo = message.contentType == ContentType.video;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),

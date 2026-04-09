@@ -59,7 +59,7 @@ class HomeController extends GetxController {
   void _listenWsEvents() {
     final wsClient = Get.find<WsClient>();
     _wsSubscription = wsClient.eventStream.listen((event) {
-      if (event.type == 'new_message') {
+      if (event.type == WsEventType.newMessage) {
         final msgConvId = event.conversationId;
         // 如果用户正在看这个会话，只更新最后一条消息，不增加未读
         if (msgConvId != null && msgConvId == activeConversationId) {

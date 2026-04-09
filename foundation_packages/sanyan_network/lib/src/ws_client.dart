@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
+import 'content_type.dart' as ct;
+import 'ws_event_type.dart';
 
 /// Provides the token for WebSocket connections.
 /// Must be set before calling [WsClient.connect].
@@ -95,10 +97,10 @@ class WsClient extends GetxService {
     _channel = null;
   }
 
-  String sendMessage(int conversationId, String content, {String contentType = 'text'}) {
+  String sendMessage(int conversationId, String content, {String contentType = ct.ContentType.text}) {
     final clientMsgId = _uuid.v4();
     _send({
-      'type': 'send_message',
+      'type': WsEventType.sendMessage,
       'conversationId': conversationId,
       'contentType': contentType,
       'content': content,
@@ -108,7 +110,7 @@ class WsClient extends GetxService {
   }
 
   void syncMessages({int lastMsgId = 0}) {
-    _send({'type': 'sync', 'lastMsgId': lastMsgId});
+    _send({'type': WsEventType.sync, 'lastMsgId': lastMsgId});
   }
 
   void _send(Map<String, dynamic> data) {
@@ -124,7 +126,7 @@ class WsClient extends GetxService {
   void _onMessage(dynamic raw) {
     try {
       final json = jsonDecode(raw as String) as Map<String, dynamic>;
-      if (json['type'] == 'pong') return;
+      if (json['type'] == WsEventType.pong) return;
       _eventController.add(WsEvent.fromJson(json));
     } catch (e) {
       // ignore malformed messages
@@ -140,7 +142,7 @@ class WsClient extends GetxService {
   void _startHeartbeat() {
     _heartbeatTimer?.cancel();
     _heartbeatTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      _send({'type': 'ping'});
+      _send({'type': WsEventType.ping});
     });
   }
 

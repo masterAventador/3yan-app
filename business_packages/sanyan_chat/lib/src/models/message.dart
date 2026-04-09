@@ -1,3 +1,5 @@
+import 'package:sanyan_network/sanyan_network.dart';
+
 class Message {
   final int id;
   final int conversationId;
@@ -23,7 +25,7 @@ class Message {
 
   bool get isFromAi => senderType == 'ai';
   bool get isProactive => source == 'proactive';
-  bool get isVoice => contentType == 'voice' && mediaUrl != null;
+  bool get isVoice => contentType == ContentType.voice && mediaUrl != null;
 
   factory Message.fromJson(Map<String, dynamic> json) => Message(
     id: json['id'] ?? 0,

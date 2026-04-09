@@ -51,11 +51,11 @@ class ChatController extends GetxController {
       if (event.conversationId != conversation.id) return;
 
       switch (event.type) {
-        case 'typing':
+        case WsEventType.typing:
           isAiTyping.value = true;
           _scrollToBottom();
           break;
-        case 'new_message':
+        case WsEventType.newMessage:
           isAiTyping.value = false;
           if (event.message != null) {
             final msg = Message.fromJson(event.message!);
@@ -64,7 +64,7 @@ class ChatController extends GetxController {
             ChatApi.markRead(conversation.id);
           }
           break;
-        case 'ack':
+        case WsEventType.ack:
           break;
       }
     });
