@@ -12,7 +12,7 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isUser = message.senderType == 'user';
+    final isUser = message.senderType == SenderType.user;
     final isVideo = message.contentType == ContentType.video;
 
     return Padding(

@@ -4,6 +4,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
+import 'package:sanyan_network/sanyan_network.dart';
 import '../../models/message.dart';
 import '../chat_controller.dart';
 
@@ -48,7 +49,7 @@ class _VoiceBubbleState extends State<VoiceBubble> {
 
   @override
   Widget build(BuildContext context) {
-    final isUser = widget.message.senderType == 'user';
+    final isUser = widget.message.senderType == SenderType.user;
 
     return GestureDetector(
       onTap: _togglePlay,

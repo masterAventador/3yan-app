@@ -50,7 +50,7 @@ abstract class ChatApi {
     try {
       final formData = FormData.fromMap({
         'file': await MultipartFile.fromFile(localFilePath, filename: 'voice.m4a'),
-        'type': 'voice',
+        'type': ContentType.voice,
         'duration': duration,
       });
 

@@ -86,8 +86,8 @@ class ChatController extends GetxController {
     messages.add(Message(
       id: 0,
       conversationId: conversation.id,
-      senderType: 'user',
-      contentType: 'text',
+      senderType: SenderType.user,
+      contentType: ContentType.text,
       content: text,
       source: 'reply',
       createdAt: DateTime.now().toString(),
@@ -105,7 +105,7 @@ class ChatController extends GetxController {
     final msg = Message(
       id: 0,
       conversationId: conversation.id,
-      senderType: 'user',
+      senderType: SenderType.user,
       contentType: ContentType.voice,
       content: '',
       mediaUrl: null,

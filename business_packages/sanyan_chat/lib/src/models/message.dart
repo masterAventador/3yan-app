@@ -30,7 +30,7 @@ class Message {
     this.localFilePath,
   });
 
-  bool get isFromAi => senderType == 'ai';
+  bool get isFromAi => senderType == SenderType.ai;
   bool get isProactive => source == 'proactive';
   bool get isVoice => contentType == ContentType.voice && mediaUrl != null;
   bool get isSending => status == MessageStatus.sending;
@@ -40,7 +40,7 @@ class Message {
     id: json['id'] ?? 0,
     conversationId: json['conversationId'] ?? 0,
     senderType: json['senderType'] ?? '',
-    contentType: json['contentType'] ?? 'text',
+    contentType: json['contentType'] ?? ContentType.text,
     content: json['content'] ?? '',
     mediaUrl: json['mediaUrl'],
     source: json['source'] ?? 'reply',
