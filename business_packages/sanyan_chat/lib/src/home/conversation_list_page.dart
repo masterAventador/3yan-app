@@ -160,7 +160,7 @@ class _ConversationItem extends StatelessWidget {
       onTap: () => Get.toNamed(AppRoutes.chat, arguments: conversation),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: _hasUnread
             ? BoxDecoration(
                 color: AuraColors.surfaceContainerLowest,
