@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
@@ -11,6 +12,8 @@ import 'home_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await LocalStorage.init();
+  // Clean up voice cache files older than 7 days
+  unawaited(VoiceCacheManager.cleanupOldFiles());
 
   // Wire up token providers so network module can access auth token
   ApiClient.tokenProvider = () => LocalStorage.token;
