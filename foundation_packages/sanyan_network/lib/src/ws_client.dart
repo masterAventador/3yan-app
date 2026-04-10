@@ -61,14 +61,17 @@ class WsClient extends GetxService {
     final token = tokenProvider?.call();
     if (token == null) return;
 
-    try {
-      final uri = Uri.parse('${AppConstants.wsUrl}?token=$token');
+    final uri = Uri.parse('${AppConstants.wsUrl}?token=$token');
+
+    // 使用 runZonedGuarded 捕获所有同步和异步异常
+    runZonedGuarded(() {
       _channel = WebSocketChannel.connect(uri);
 
       _channel!.stream.listen(
         _onMessage,
         onDone: _onDisconnected,
-        onError: (e) => _onDisconnected(),
+        onError: (_) => _onDisconnected(),
+        cancelOnError: true,
       );
 
       _isConnected = true;
@@ -76,9 +79,10 @@ class WsClient extends GetxService {
       _reconnectAttempts = 0;
       _startHeartbeat();
       syncMessages();
-    } catch (e) {
+    }, (error, stack) {
+      // 连接失败或 stream 抛出的任何异常都不会让 app 崩溃
       _onDisconnected();
-    }
+    });
   }
 
   void disconnect() {
