@@ -175,7 +175,7 @@ class WsClient extends GetxService {
     if (data['type'] == WsEventType.ping) return;
     final buf = StringBuffer();
     buf.writeln('\n╔══════════════════════════════════════════════════════════════');
-    buf.writeln('║ ⬆️  WS SEND');
+    buf.writeln('║ 🔺 WS SEND');
     buf.writeln('║ Type: ${data['type']}');
     buf.writeln('╠══════════════════════════════════════════════════════════════');
     buf.writeln(_prettyJson(data));
@@ -187,7 +187,7 @@ class WsClient extends GetxService {
     if (!kDebugMode) return;
     final buf = StringBuffer();
     buf.writeln('\n╔══════════════════════════════════════════════════════════════');
-    buf.writeln('║ ⬇️  WS RECV');
+    buf.writeln('║ 🔻 WS RECV');
     buf.writeln('║ Type: ${data['type']}');
     buf.writeln('╠══════════════════════════════════════════════════════════════');
     buf.writeln(_prettyJson(data));
