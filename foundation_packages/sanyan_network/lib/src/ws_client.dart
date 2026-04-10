@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -62,6 +64,7 @@ class WsClient extends GetxService {
     if (token == null) return;
 
     final uri = Uri.parse('${AppConstants.wsUrl}?token=$token');
+    _logConnect(uri);
 
     // 使用 runZonedGuarded 捕获所有同步和异步异常
     runZonedGuarded(() {
@@ -81,6 +84,7 @@ class WsClient extends GetxService {
       syncMessages();
     }, (error, stack) {
       // 连接失败或 stream 抛出的任何异常都不会让 app 崩溃
+      _logConnectError(error);
       _onDisconnected();
     });
   }
@@ -120,7 +124,9 @@ class WsClient extends GetxService {
   void _send(Map<String, dynamic> data) {
     if (!_isConnected || _channel == null) return;
     try {
-      _channel!.sink.add(jsonEncode(data));
+      final payload = jsonEncode(data);
+      _channel!.sink.add(payload);
+      _logSend(data);
     } catch (e) {
       // sink 已关闭，触发重连
       _onDisconnected();
@@ -131,9 +137,71 @@ class WsClient extends GetxService {
     try {
       final json = jsonDecode(raw as String) as Map<String, dynamic>;
       if (json['type'] == WsEventType.pong) return;
+      _logReceive(json);
       _eventController.add(WsEvent.fromJson(json));
     } catch (e) {
       // ignore malformed messages
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // 日志输出
+  // ─────────────────────────────────────────────────────────────
+
+  void _logConnect(Uri uri) {
+    if (!kDebugMode) return;
+    final buf = StringBuffer();
+    buf.writeln('\n╔══════════════════════════════════════════════════════════════');
+    buf.writeln('║ 🔌 WS CONNECT');
+    buf.writeln('║ URL: $uri');
+    buf.writeln('╚══════════════════════════════════════════════════════════════');
+    developer.log(buf.toString(), name: 'WS');
+  }
+
+  void _logConnectError(Object error) {
+    if (!kDebugMode) return;
+    final buf = StringBuffer();
+    buf.writeln('\n╔══════════════════════════════════════════════════════════════');
+    buf.writeln('║ ❌ WS CONNECT FAILED');
+    buf.writeln('║ Error: $error');
+    buf.writeln('║ 重连次数: $_reconnectAttempts / $_maxReconnectAttempts');
+    buf.writeln('╚══════════════════════════════════════════════════════════════');
+    developer.log(buf.toString(), name: 'WS');
+  }
+
+  void _logSend(Map<String, dynamic> data) {
+    if (!kDebugMode) return;
+    // ping 太频繁，跳过
+    if (data['type'] == WsEventType.ping) return;
+    final buf = StringBuffer();
+    buf.writeln('\n╔══════════════════════════════════════════════════════════════');
+    buf.writeln('║ ⬆️  WS SEND');
+    buf.writeln('║ Type: ${data['type']}');
+    buf.writeln('╠══════════════════════════════════════════════════════════════');
+    buf.writeln(_prettyJson(data));
+    buf.writeln('╚══════════════════════════════════════════════════════════════');
+    developer.log(buf.toString(), name: 'WS');
+  }
+
+  void _logReceive(Map<String, dynamic> data) {
+    if (!kDebugMode) return;
+    final buf = StringBuffer();
+    buf.writeln('\n╔══════════════════════════════════════════════════════════════');
+    buf.writeln('║ ⬇️  WS RECV');
+    buf.writeln('║ Type: ${data['type']}');
+    buf.writeln('╠══════════════════════════════════════════════════════════════');
+    buf.writeln(_prettyJson(data));
+    buf.writeln('╚══════════════════════════════════════════════════════════════');
+    developer.log(buf.toString(), name: 'WS');
+  }
+
+  String _prettyJson(dynamic data) {
+    if (data == null) return 'null';
+    try {
+      const encoder = JsonEncoder.withIndent('  ');
+      return encoder.convert(data);
+    } catch (_) {
+      return data.toString();
     }
   }
 
