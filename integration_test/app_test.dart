@@ -33,8 +33,8 @@ void main() {
     debugPrint('[E2E] Step 1: 登录页，跳转注册');
     expect(find.text('走进更温暖的连接方式'), findsOneWidget);
 
-    // 注册链接用 RichText 渲染，只能通过"立即注册"这段文字找到
-    await tester.tap(find.text('立即注册'));
+    // 注册链接是 RichText 拼接的，匹配完整字符串
+    await tester.tap(find.text('还没有账号？ 立即注册', findRichText: true));
     await tester.pumpAndSettle(const Duration(seconds: 1));
 
     // ========== Step 2: 注册 ==========
@@ -72,9 +72,9 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 5));
 
     // 注册成功后应该回到登录页或直接进首页
-    // 如果回到登录页就继续登录流程
-    final onLoginPage = find.text('登录').evaluate().isNotEmpty;
-    final onHomePage = find.text('消息').evaluate().isNotEmpty;
+    // 如果回到登录页就继续登录流程（登录页有"走进更温暖的连接方式"，首页有"Messages"）
+    final onLoginPage = find.text('走进更温暖的连接方式').evaluate().isNotEmpty;
+    final onHomePage = find.text('Messages').evaluate().isNotEmpty;
     debugPrint('[E2E] 注册后: loginPage=$onLoginPage, homePage=$onHomePage');
 
     String loginPhone = testPhone;
@@ -84,8 +84,8 @@ void main() {
       // 如果注册失败（手机号已存在等），用兜底账号
       if (!onLoginPage) {
         debugPrint('[E2E] 注册可能失败，返回登录页');
-        // 返回链接用 RichText 渲染，只能通过"返回登录"这段文字找到
-        await tester.tap(find.text('返回登录'));
+        // 返回链接是 RichText 拼接的，匹配完整字符串
+        await tester.tap(find.text('已有账号？ 返回登录', findRichText: true));
         await tester.pumpAndSettle(const Duration(seconds: 1));
         loginPhone = fallbackPhone;
         loginPassword = fallbackPassword;
@@ -112,8 +112,8 @@ void main() {
     debugPrint('[E2E] Step 4: 首页');
     await tester.pumpAndSettle(const Duration(seconds: 3));
 
-    // 首页应该显示"消息"（标题+底部导航各一个）
-    expect(find.text('消息'), findsAtLeastNWidgets(1));
+    // 首页应显示"三言" 标题和 "Messages" 区域标题
+    expect(find.text('Messages'), findsAtLeastNWidgets(1));
 
     // 查找会话（小婉）
     final hasConversation = find.text('小婉').evaluate().isNotEmpty;
@@ -169,6 +169,8 @@ void main() {
             text != '说点什么...' &&
             text != '正在输入...' &&
             text != '小婉' &&
+            text != 'ONLINE' &&
+            text != 'Messages' &&
             text != 'AI 陪伴，懂你所言') {
           debugPrint('[E2E] AI 回复: $text');
           aiReplied = true;
