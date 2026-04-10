@@ -39,6 +39,11 @@ dependencies:
   sanyan_status:
     path: business_packages/sanyan_status
 
+dependency_overrides:
+  # record 5.2.1 要求 record_platform_interface 1.5.0，但 record_linux 0.7.2 不兼容
+  # 强制使用更高版本的 record_linux
+  record_linux: ^1.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
