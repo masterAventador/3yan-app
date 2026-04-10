@@ -26,6 +26,15 @@ class LocalStorage {
     }
   }
 
+  static String? get lastInputMode => _box.read('lastInputMode');
+  static set lastInputMode(String? value) {
+    if (value == null) {
+      _box.remove('lastInputMode');
+    } else {
+      _box.write('lastInputMode', value);
+    }
+  }
+
   static void clear() {
     _box.erase();
   }

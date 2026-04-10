@@ -1,4 +1,5 @@
 import 'package:sanyan_network/sanyan_network.dart';
+import 'message_status.dart';
 
 class Message {
   final int id;
@@ -10,6 +11,9 @@ class Message {
   final String source;
   final String createdAt;
   final String? clientMsgId;
+  final int? duration;
+  MessageStatus? status;
+  String? localFilePath;
 
   Message({
     required this.id,
@@ -21,11 +25,16 @@ class Message {
     required this.source,
     required this.createdAt,
     this.clientMsgId,
+    this.duration,
+    this.status,
+    this.localFilePath,
   });
 
   bool get isFromAi => senderType == 'ai';
   bool get isProactive => source == 'proactive';
   bool get isVoice => contentType == ContentType.voice && mediaUrl != null;
+  bool get isSending => status == MessageStatus.sending;
+  bool get isFailed => status == MessageStatus.failed;
 
   factory Message.fromJson(Map<String, dynamic> json) => Message(
     id: json['id'] ?? 0,
@@ -36,6 +45,7 @@ class Message {
     mediaUrl: json['mediaUrl'],
     source: json['source'] ?? 'reply',
     createdAt: json['createdAt'] ?? '',
+    duration: json['duration'],
   );
 
   Map<String, dynamic> toJson() => {
@@ -47,5 +57,6 @@ class Message {
     'mediaUrl': mediaUrl,
     'source': source,
     'createdAt': createdAt,
+    'duration': duration,
   };
 }
