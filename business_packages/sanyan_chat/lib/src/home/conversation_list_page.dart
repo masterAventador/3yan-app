@@ -18,7 +18,7 @@ class ConversationListPage extends StatelessWidget {
         children: [
           // Top bar
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: Row(
               children: [
                 Container(
@@ -74,7 +74,7 @@ class ConversationListPage extends StatelessWidget {
 
           // Search box
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
               height: 56,
               decoration: BoxDecoration(
@@ -99,7 +99,7 @@ class ConversationListPage extends StatelessWidget {
 
           // Messages title
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               'Messages',
               style: GoogleFonts.manrope(
