@@ -148,7 +148,6 @@ class _VoiceRecordOverlayState extends State<VoiceRecordOverlay>
               ? 'Release to cancel'
               : 'Release to send, Swipe up to cancel',
           style: TextStyle(
-            fontFamily: AuraFonts.manrope,
             fontSize: 16,
             fontWeight: FontWeight.w700,
             color: widget.isCancelling ? Colors.red : AuraColors.onSurface,

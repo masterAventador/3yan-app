@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../aura_colors.dart';
-import '../aura_fonts.dart';
 
 /// Navigation tab data model.
 class AuraNavItem {
@@ -129,7 +128,6 @@ class _AuraNavTabItem extends StatelessWidget {
         Text(
           item.label,
           style: TextStyle(
-            fontFamily: AuraFonts.manrope,
             fontSize: 10,
             fontWeight: FontWeight.w600,
             color: active ? AuraColors.primary : AuraColors.onSurfaceVariant,

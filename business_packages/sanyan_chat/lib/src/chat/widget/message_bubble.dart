@@ -95,7 +95,6 @@ class _TextBubble extends StatelessWidget {
       child: Text(
         message.content,
         style: TextStyle(
-          fontFamily: AuraFonts.manrope,
           fontSize: 15,
           height: 1.5,
           color: isUser ? Colors.white : AuraColors.onSurface,

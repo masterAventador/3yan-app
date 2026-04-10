@@ -16,7 +16,6 @@ class ContactsPage extends StatelessWidget {
               Text(
                 'Contacts',
                 style: TextStyle(
-                  fontFamily: AuraFonts.manrope,
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
                   color: AuraColors.onSurface,
@@ -26,7 +25,6 @@ class ContactsPage extends StatelessWidget {
               Text(
                 '敬请期待',
                 style: TextStyle(
-                  fontFamily: AuraFonts.manrope,
                   fontSize: 14,
                   color: AuraColors.onSurfaceVariant,
                 ),

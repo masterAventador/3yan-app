@@ -119,14 +119,12 @@ class ChatInputBar extends StatelessWidget {
       child: TextField(
         controller: controller,
         style: TextStyle(
-          fontFamily: AuraFonts.manrope,
           fontSize: 14,
           color: AuraColors.onSurface,
         ),
         decoration: InputDecoration(
           hintText: '输入消息...',
           hintStyle: TextStyle(
-            fontFamily: AuraFonts.manrope,
             fontSize: 14,
             color: AuraColors.outlineVariant,
           ),

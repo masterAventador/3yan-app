@@ -82,7 +82,6 @@ class AuraInput extends StatelessWidget {
                   onSubmitted: onSubmitted,
                   onChanged: onChanged,
                   style: TextStyle(
-                    fontFamily: AuraFonts.manrope,
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                     color: AuraColors.onSurface,
@@ -90,7 +89,6 @@ class AuraInput extends StatelessWidget {
                   decoration: InputDecoration(
                     hintText: hintText,
                     hintStyle: TextStyle(
-                      fontFamily: AuraFonts.manrope,
                       fontSize: 15,
                       color: AuraColors.outlineVariant,
                     ),

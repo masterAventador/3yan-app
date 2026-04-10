@@ -234,7 +234,6 @@ class _TopBar extends StatelessWidget {
                     Text(
                       conversation.characterName ?? '',
                       style: TextStyle(
-                        fontFamily: AuraFonts.manrope,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: AuraColors.primary,

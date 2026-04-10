@@ -37,7 +37,6 @@ class HoldToSpeakButton extends StatelessWidget {
         child: Text(
           isPressed ? '正在录音...' : '按住说话',
           style: TextStyle(
-            fontFamily: AuraFonts.manrope,
             fontSize: 14,
             fontWeight: FontWeight.w500,
             color: isPressed

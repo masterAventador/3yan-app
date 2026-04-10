@@ -42,7 +42,6 @@ class ConversationListPage extends StatelessWidget {
                   child: Text(
                     '三言',
                     style: TextStyle(
-                      fontFamily: AuraFonts.manrope,
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,
@@ -88,7 +87,7 @@ class ConversationListPage extends StatelessWidget {
                   const SizedBox(width: 10),
                   Text(
                     '搜索对话...',
-                    style: TextStyle(fontFamily: AuraFonts.manrope, fontSize: 14, color: AuraColors.outlineVariant),
+                    style: TextStyle(fontSize: 14, color: AuraColors.outlineVariant),
                   ),
                 ],
               ),
@@ -103,7 +102,6 @@ class ConversationListPage extends StatelessWidget {
             child: Text(
               'Messages',
               style: TextStyle(
-                fontFamily: AuraFonts.manrope,
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
                 color: AuraColors.onSurface,
@@ -125,7 +123,7 @@ class ConversationListPage extends StatelessWidget {
                 return Center(
                   child: Text(
                     '还没有对话，开始聊天吧',
-                    style: TextStyle(fontFamily: AuraFonts.manrope, color: AuraColors.onSurfaceVariant),
+                    style: TextStyle(color: AuraColors.onSurfaceVariant),
                   ),
                 );
               }
@@ -219,7 +217,6 @@ class _ConversationItem extends StatelessWidget {
                       Text(
                         conversation.characterName ?? '未知',
                         style: TextStyle(
-                          fontFamily: AuraFonts.manrope,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: AuraColors.onSurface,
@@ -244,7 +241,6 @@ class _ConversationItem extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontFamily: AuraFonts.manrope,
                             fontSize: 14,
                             color: _hasUnread ? AuraColors.onSurface : AuraColors.onSurfaceVariant,
                             fontWeight: _hasUnread ? FontWeight.w500 : FontWeight.w400,
@@ -265,7 +261,6 @@ class _ConversationItem extends StatelessWidget {
                           child: Text(
                             '${conversation.unreadCount}',
                             style: TextStyle(
-                              fontFamily: AuraFonts.manrope,
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               color: AuraColors.onSurface,
