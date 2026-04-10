@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:sanyan_network/sanyan_network.dart';
 import '../models/character.dart';
 import '../models/conversation.dart';
@@ -40,4 +41,41 @@ abstract class ChatApi {
 
   static Future<ApiResponse> markRead(int convId) =>
       _client.send(MarkReadReq(conversationId: convId));
+
+  /// Upload voice file to server, returns COS URL and duration
+  static Future<ApiResponse<VoiceUploadResult>> uploadVoice(
+    String localFilePath, {
+    required int duration,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(localFilePath, filename: 'voice.m4a'),
+        'type': 'voice',
+        'duration': duration,
+      });
+
+      final resp = await _client.postFormData(
+        '/api/media/upload',
+        formData: formData,
+      );
+      return ApiResponse.fromJson(
+        resp as Map<String, dynamic>,
+        (data) => VoiceUploadResult.fromJson(data as Map<String, dynamic>),
+      );
+    } catch (e) {
+      return ApiResponse(success: false, errMsg: '上传失败: $e');
+    }
+  }
+}
+
+class VoiceUploadResult {
+  final String url;
+  final int duration;
+
+  VoiceUploadResult({required this.url, required this.duration});
+
+  factory VoiceUploadResult.fromJson(Map<String, dynamic> json) => VoiceUploadResult(
+    url: json['url'] ?? '',
+    duration: json['duration'] ?? 0,
+  );
 }

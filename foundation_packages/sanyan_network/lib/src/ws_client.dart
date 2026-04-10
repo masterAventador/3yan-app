@@ -117,6 +117,25 @@ class WsClient extends GetxService {
     return clientMsgId;
   }
 
+  String sendVoiceMessage({
+    required int conversationId,
+    required String mediaUrl,
+    required int duration,
+    String? clientMsgId,
+  }) {
+    final msgId = clientMsgId ?? _uuid.v4();
+    _send({
+      'type': WsEventType.sendMessage,
+      'conversationId': conversationId,
+      'contentType': ct.ContentType.voice,
+      'content': '',
+      'mediaUrl': mediaUrl,
+      'duration': duration,
+      'clientMsgId': msgId,
+    });
+    return msgId;
+  }
+
   void syncMessages({int lastMsgId = 0}) {
     _send({'type': WsEventType.sync, 'lastMsgId': lastMsgId});
   }

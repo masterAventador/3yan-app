@@ -123,6 +123,12 @@ class ApiClient {
     return ApiResponse.fromJson(resp.data, fromData);
   }
 
+  /// POST multipart form data (for file uploads)
+  Future<dynamic> postFormData(String path, {required FormData formData}) async {
+    final resp = await _dio.post(path, data: formData);
+    return resp.data;
+  }
+
   Future<ApiResponse<T>> send<T>(BaseReq req, {
     T Function(dynamic)? fromData,
   }) async {
