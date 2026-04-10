@@ -18,7 +18,7 @@ class ConversationListPage extends StatelessWidget {
         children: [
           // Top bar
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            padding: EdgeInsets.fromLTRB(AuraSpacing.pagePadding, 12, AuraSpacing.pagePadding, 0),
             child: Row(
               children: [
                 Container(
@@ -74,7 +74,7 @@ class ConversationListPage extends StatelessWidget {
 
           // Search box
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: AuraSpacing.pageHorizontal,
             child: Container(
               height: 56,
               decoration: BoxDecoration(
@@ -99,7 +99,7 @@ class ConversationListPage extends StatelessWidget {
 
           // Messages title
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: AuraSpacing.pageHorizontal,
             child: Text(
               'Messages',
               style: GoogleFonts.manrope(
@@ -132,7 +132,7 @@ class ConversationListPage extends StatelessWidget {
                 color: AuraColors.primary,
                 onRefresh: c.loadConversations,
                 child: ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  padding: EdgeInsets.fromLTRB(AuraSpacing.pagePadding, 0, AuraSpacing.pagePadding, 16),
                   itemCount: c.conversations.length,
                   itemBuilder: (context, index) => _ConversationItem(
                     conversation: c.conversations[index],

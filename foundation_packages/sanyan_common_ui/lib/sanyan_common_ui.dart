@@ -1,5 +1,6 @@
 export 'src/constants.dart';
 export 'src/aura_colors.dart';
+export 'src/aura_spacing.dart';
 export 'src/aura_theme.dart';
 export 'src/widgets/glass_panel.dart';
 export 'src/widgets/aura_input.dart';

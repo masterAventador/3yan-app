@@ -16,7 +16,7 @@ class MessageBubble extends StatelessWidget {
     final isVideo = message.contentType == ContentType.video;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: AuraSpacing.pagePadding, vertical: 6),
       child: Row(
         mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
