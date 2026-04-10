@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'aura_colors.dart';
+import 'aura_fonts.dart';
 
 class AuraTheme {
   static ThemeData get light {
     final base = ThemeData(
       useMaterial3: true,
       scaffoldBackgroundColor: AuraColors.surface,
-      textTheme: GoogleFonts.manropeTextTheme(),
+      fontFamily: AuraFonts.manrope,
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         foregroundColor: AuraColors.primary,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
-        titleTextStyle: GoogleFonts.manrope(
+        titleTextStyle: TextStyle(
+          fontFamily: AuraFonts.manrope,
           fontSize: 17,
           fontWeight: FontWeight.w600,
           color: AuraColors.onSurface,

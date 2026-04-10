@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../aura_colors.dart';
+import '../aura_fonts.dart';
 
 /// Styled input field with optional label, left icon, and suffix widget.
 ///
@@ -48,7 +48,8 @@ class AuraInput extends StatelessWidget {
         if (label != null) ...[
           Text(
             label!.toUpperCase(),
-            style: GoogleFonts.inter(
+            style: TextStyle(
+              fontFamily: AuraFonts.inter,
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: AuraColors.onSurfaceVariant,
@@ -80,14 +81,16 @@ class AuraInput extends StatelessWidget {
                   textInputAction: textInputAction,
                   onSubmitted: onSubmitted,
                   onChanged: onChanged,
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                    fontFamily: AuraFonts.manrope,
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                     color: AuraColors.onSurface,
                   ),
                   decoration: InputDecoration(
                     hintText: hintText,
-                    hintStyle: GoogleFonts.manrope(
+                    hintStyle: TextStyle(
+                      fontFamily: AuraFonts.manrope,
                       fontSize: 15,
                       color: AuraColors.outlineVariant,
                     ),

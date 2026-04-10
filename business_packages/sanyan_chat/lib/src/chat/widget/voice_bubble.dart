@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import 'package:sanyan_network/sanyan_network.dart';
 import '../../models/message.dart';
@@ -132,7 +131,8 @@ class _VoiceBubbleState extends State<VoiceBubble> {
             // Duration
             Text(
               '0:00', // TODO: 等后端 Message 增加 mediaDuration 字段后替换
-              style: GoogleFonts.inter(
+              style: TextStyle(
+                fontFamily: AuraFonts.inter,
                 fontSize: 11,
                 color: isUser
                     ? Colors.white.withValues(alpha: 0.8)

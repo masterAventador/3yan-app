@@ -31,7 +31,7 @@ void main() {
 
     // ========== Step 1: 登录页 → 跳转注册 ==========
     debugPrint('[E2E] Step 1: 登录页，跳转注册');
-    expect(find.text('三言'), findsOneWidget);
+    expect(find.text('走进更温暖的连接方式'), findsOneWidget);
 
     // 注册链接用 RichText 渲染，只能通过"立即注册"这段文字找到
     await tester.tap(find.text('立即注册'));
@@ -141,8 +141,8 @@ void main() {
     await tester.enterText(chatInput, testMessage);
     await tester.pumpAndSettle();
 
-    // 点发送按钮（圆形渐变按钮里的发送图标）
-    await tester.tap(find.byIcon(Icons.send_rounded));
+    // 通过软键盘 Send action 发送消息（新输入栏没有独立发送按钮）
+    await tester.testTextInput.receiveAction(TextInputAction.send);
     await tester.pumpAndSettle();
 
     // 消息应出现在列表中

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import 'package:sanyan_routes/sanyan_routes.dart';
 import '../models/conversation.dart';
@@ -42,7 +41,8 @@ class ConversationListPage extends StatelessWidget {
                       AuraColors.userBubbleGradient.createShader(bounds),
                   child: Text(
                     '三言',
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                      fontFamily: AuraFonts.manrope,
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,
@@ -88,7 +88,7 @@ class ConversationListPage extends StatelessWidget {
                   const SizedBox(width: 10),
                   Text(
                     '搜索对话...',
-                    style: GoogleFonts.manrope(fontSize: 14, color: AuraColors.outlineVariant),
+                    style: TextStyle(fontFamily: AuraFonts.manrope, fontSize: 14, color: AuraColors.outlineVariant),
                   ),
                 ],
               ),
@@ -102,7 +102,8 @@ class ConversationListPage extends StatelessWidget {
             padding: AuraSpacing.pageHorizontal,
             child: Text(
               'Messages',
-              style: GoogleFonts.manrope(
+              style: TextStyle(
+                fontFamily: AuraFonts.manrope,
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
                 color: AuraColors.onSurface,
@@ -124,7 +125,7 @@ class ConversationListPage extends StatelessWidget {
                 return Center(
                   child: Text(
                     '还没有对话，开始聊天吧',
-                    style: GoogleFonts.manrope(color: AuraColors.onSurfaceVariant),
+                    style: TextStyle(fontFamily: AuraFonts.manrope, color: AuraColors.onSurfaceVariant),
                   ),
                 );
               }
@@ -217,7 +218,8 @@ class _ConversationItem extends StatelessWidget {
                     children: [
                       Text(
                         conversation.characterName ?? '未知',
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
+                          fontFamily: AuraFonts.manrope,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: AuraColors.onSurface,
@@ -225,7 +227,8 @@ class _ConversationItem extends StatelessWidget {
                       ),
                       Text(
                         _formatTime(conversation.lastMessageAt),
-                        style: GoogleFonts.inter(
+                        style: TextStyle(
+                          fontFamily: AuraFonts.inter,
                           fontSize: 10,
                           color: AuraColors.onSurfaceVariant,
                         ),
@@ -240,7 +243,8 @@ class _ConversationItem extends StatelessWidget {
                           conversation.lastMessage ?? '',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.manrope(
+                          style: TextStyle(
+                            fontFamily: AuraFonts.manrope,
                             fontSize: 14,
                             color: _hasUnread ? AuraColors.onSurface : AuraColors.onSurfaceVariant,
                             fontWeight: _hasUnread ? FontWeight.w500 : FontWeight.w400,
@@ -260,7 +264,8 @@ class _ConversationItem extends StatelessWidget {
                           alignment: Alignment.center,
                           child: Text(
                             '${conversation.unreadCount}',
-                            style: GoogleFonts.manrope(
+                            style: TextStyle(
+                              fontFamily: AuraFonts.manrope,
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               color: AuraColors.onSurface,

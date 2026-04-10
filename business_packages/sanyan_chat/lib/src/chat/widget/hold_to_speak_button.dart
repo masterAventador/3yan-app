@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 
 class HoldToSpeakButton extends StatelessWidget {
@@ -37,7 +36,8 @@ class HoldToSpeakButton extends StatelessWidget {
         alignment: Alignment.center,
         child: Text(
           isPressed ? '正在录音...' : '按住说话',
-          style: GoogleFonts.manrope(
+          style: TextStyle(
+            fontFamily: AuraFonts.manrope,
             fontSize: 14,
             fontWeight: FontWeight.w500,
             color: isPressed

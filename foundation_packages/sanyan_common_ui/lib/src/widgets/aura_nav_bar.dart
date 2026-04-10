@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../aura_colors.dart';
+import '../aura_fonts.dart';
 
 /// Navigation tab data model.
 class AuraNavItem {
@@ -128,7 +128,8 @@ class _AuraNavTabItem extends StatelessWidget {
         const SizedBox(height: 3),
         Text(
           item.label,
-          style: GoogleFonts.manrope(
+          style: TextStyle(
+            fontFamily: AuraFonts.manrope,
             fontSize: 10,
             fontWeight: FontWeight.w600,
             color: active ? AuraColors.primary : AuraColors.onSurfaceVariant,

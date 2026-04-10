@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import 'chat_input_mode.dart';
 import 'hold_to_speak_button.dart';
@@ -119,13 +118,15 @@ class ChatInputBar extends StatelessWidget {
       ),
       child: TextField(
         controller: controller,
-        style: GoogleFonts.manrope(
+        style: TextStyle(
+          fontFamily: AuraFonts.manrope,
           fontSize: 14,
           color: AuraColors.onSurface,
         ),
         decoration: InputDecoration(
           hintText: '输入消息...',
-          hintStyle: GoogleFonts.manrope(
+          hintStyle: TextStyle(
+            fontFamily: AuraFonts.manrope,
             fontSize: 14,
             color: AuraColors.outlineVariant,
           ),

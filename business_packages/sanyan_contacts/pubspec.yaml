@@ -9,7 +9,6 @@ dependencies:
   flutter:
     sdk: flutter
   get: ^4.6.6
-  google_fonts: ^6.2.1
   sanyan_common_ui:
     path: ../../foundation_packages/sanyan_common_ui
   sanyan_routes:

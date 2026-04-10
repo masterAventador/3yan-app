@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import 'package:sanyan_network/sanyan_network.dart';
 import '../../models/message.dart';
@@ -95,7 +94,8 @@ class _TextBubble extends StatelessWidget {
       ),
       child: Text(
         message.content,
-        style: GoogleFonts.manrope(
+        style: TextStyle(
+          fontFamily: AuraFonts.manrope,
           fontSize: 15,
           height: 1.5,
           color: isUser ? Colors.white : AuraColors.onSurface,
@@ -139,7 +139,8 @@ class _Timestamp extends StatelessWidget {
         ],
         Text(
           timeStr,
-          style: GoogleFonts.inter(
+          style: TextStyle(
+            fontFamily: AuraFonts.inter,
             fontSize: 10,
             color: AuraColors.onSurfaceVariant.withValues(alpha: 0.7),
           ),

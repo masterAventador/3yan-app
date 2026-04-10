@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import 'package:sanyan_user/sanyan_user.dart';
 import '../models/conversation.dart';
@@ -234,7 +233,8 @@ class _TopBar extends StatelessWidget {
                   children: [
                     Text(
                       conversation.characterName ?? '',
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(
+                        fontFamily: AuraFonts.manrope,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: AuraColors.primary,
@@ -254,7 +254,8 @@ class _TopBar extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           'ONLINE',
-                          style: GoogleFonts.inter(
+                          style: TextStyle(
+                            fontFamily: AuraFonts.inter,
                             fontSize: 10,
                             letterSpacing: 0.8,
                             color: AuraColors.onSurfaceVariant,

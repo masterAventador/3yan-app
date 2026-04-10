@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 
 class VoiceRecordOverlay extends StatefulWidget {
@@ -148,7 +147,8 @@ class _VoiceRecordOverlayState extends State<VoiceRecordOverlay>
           widget.isCancelling
               ? 'Release to cancel'
               : 'Release to send, Swipe up to cancel',
-          style: GoogleFonts.manrope(
+          style: TextStyle(
+            fontFamily: AuraFonts.manrope,
             fontSize: 16,
             fontWeight: FontWeight.w700,
             color: widget.isCancelling ? Colors.red : AuraColors.onSurface,
@@ -157,7 +157,8 @@ class _VoiceRecordOverlayState extends State<VoiceRecordOverlay>
         const SizedBox(height: 4),
         Text(
           widget.isCancelling ? '松开取消' : '松开发送，上滑取消',
-          style: GoogleFonts.inter(
+          style: TextStyle(
+            fontFamily: AuraFonts.inter,
             fontSize: 12,
             color: AuraColors.onSurfaceVariant.withValues(alpha: 0.6),
             letterSpacing: 2,

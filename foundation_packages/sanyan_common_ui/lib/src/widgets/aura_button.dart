@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../aura_colors.dart';
+import '../aura_fonts.dart';
 
 /// Gradient action button with optional trailing icon and loading state.
 ///
@@ -63,7 +63,8 @@ class AuraButton extends StatelessWidget {
                   children: [
                     Text(
                       label,
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(
+                        fontFamily: AuraFonts.manrope,
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: AuraColors.onSurface,

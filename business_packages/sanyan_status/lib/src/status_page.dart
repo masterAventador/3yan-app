@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 
 class StatusPage extends StatelessWidget {
@@ -16,7 +15,8 @@ class StatusPage extends StatelessWidget {
             children: [
               Text(
                 'Status',
-                style: GoogleFonts.manrope(
+                style: TextStyle(
+                  fontFamily: AuraFonts.manrope,
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
                   color: AuraColors.onSurface,
@@ -25,7 +25,8 @@ class StatusPage extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 '敬请期待',
-                style: GoogleFonts.manrope(
+                style: TextStyle(
+                  fontFamily: AuraFonts.manrope,
                   fontSize: 14,
                   color: AuraColors.onSurfaceVariant,
                 ),
