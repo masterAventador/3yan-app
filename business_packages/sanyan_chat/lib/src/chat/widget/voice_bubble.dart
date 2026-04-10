@@ -1,9 +1,11 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import '../../models/message.dart';
+import '../chat_controller.dart';
 
 class VoiceBubble extends StatefulWidget {
   final Message message;
@@ -136,6 +138,35 @@ class _VoiceBubbleState extends State<VoiceBubble> {
                     : AuraColors.onSurfaceVariant,
               ),
             ),
+            // State indicator
+            if (widget.message.isSending) ...[
+              const SizedBox(width: 8),
+              const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                ),
+              ),
+            ] else if (widget.message.isFailed) ...[
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () {
+                  final c = Get.find<ChatController>();
+                  c.retryVoiceMessage(widget.message);
+                },
+                child: Container(
+                  width: 18,
+                  height: 18,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.priority_high, color: Colors.white, size: 12),
+                ),
+              ),
+            ],
           ],
         ),
       ),

@@ -3,49 +3,173 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
+import 'package:sanyan_user/sanyan_user.dart';
 import '../models/conversation.dart';
 import 'chat_controller.dart';
+import 'voice_recorder.dart';
 import 'widget/chat_input_bar.dart';
+import 'widget/chat_input_mode.dart';
 import 'widget/message_bubble.dart';
+import 'widget/voice_record_overlay.dart';
 
-class ChatPage extends StatelessWidget {
-  ChatPage({super.key});
+class ChatPage extends StatefulWidget {
+  const ChatPage({super.key});
 
-  final Conversation conversation = Get.arguments as Conversation;
-  late final ChatController c = Get.put(ChatController(conversation));
+  @override
+  State<ChatPage> createState() => _ChatPageState();
+}
+
+class _ChatPageState extends State<ChatPage> {
+  late final Conversation conversation;
+  late final ChatController c;
+  late ChatInputMode _mode;
+  final VoiceRecorder _recorder = VoiceRecorder();
+  bool _isRecording = false;
+  bool _isCancelling = false;
+  Offset? _recordStartPosition;
+
+  @override
+  void initState() {
+    super.initState();
+    conversation = Get.arguments as Conversation;
+    c = Get.put(ChatController(conversation));
+    _mode = ChatInputMode.fromStorage(LocalStorage.lastInputMode);
+  }
+
+  @override
+  void dispose() {
+    _recorder.dispose();
+    super.dispose();
+  }
+
+  void _toggleMode() {
+    setState(() {
+      _mode = _mode == ChatInputMode.keyboard
+          ? ChatInputMode.voice
+          : ChatInputMode.keyboard;
+      LocalStorage.lastInputMode = _mode.storageValue;
+    });
+  }
+
+  Future<void> _onRecordStart(Offset globalPosition) async {
+    final granted = await _recorder.ensurePermission();
+    if (!granted) {
+      _showToast('需要麦克风权限才能发送语音');
+      return;
+    }
+
+    final started = await _recorder.start(onMaxDurationReached: () {
+      if (_isRecording) _onRecordEnd();
+    });
+    if (!started) {
+      _showToast('录音启动失败');
+      return;
+    }
+    setState(() {
+      _isRecording = true;
+      _isCancelling = false;
+      _recordStartPosition = globalPosition;
+    });
+  }
+
+  void _onRecordMove(Offset globalPosition) {
+    if (!_isRecording || _recordStartPosition == null) return;
+    final dy = _recordStartPosition!.dy - globalPosition.dy;
+    final cancelling = dy > 80;
+    if (cancelling != _isCancelling) {
+      setState(() {
+        _isCancelling = cancelling;
+      });
+    }
+  }
+
+  Future<void> _onRecordEnd() async {
+    if (!_isRecording) return;
+
+    final cancelling = _isCancelling;
+    setState(() {
+      _isRecording = false;
+      _isCancelling = false;
+      _recordStartPosition = null;
+    });
+
+    if (cancelling) {
+      await _recorder.cancel();
+      return;
+    }
+
+    final result = await _recorder.stop();
+    if (result == null) {
+      _showToast('说话时间太短');
+      return;
+    }
+
+    c.sendVoiceMessage(result.filePath, result.durationSeconds);
+  }
+
+  Future<void> _onRecordCancel() async {
+    if (!_isRecording) return;
+    setState(() {
+      _isRecording = false;
+      _isCancelling = false;
+      _recordStartPosition = null;
+    });
+    await _recorder.cancel();
+  }
+
+  void _showToast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AuraColors.surface,
-      body: Column(
+      body: Stack(
         children: [
-          _TopBar(conversation: conversation),
-          const Divider(
-            height: 1,
-            thickness: 1,
-            color: Color(0xFFD4FBFB),
+          SafeArea(
+            child: Column(
+              children: [
+                _TopBar(conversation: conversation),
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Color(0xFFD4FBFB),
+                ),
+                Expanded(
+                  child: Obx(() {
+                    if (c.isLoading.value && c.messages.isEmpty) {
+                      return const Center(
+                        child: CircularProgressIndicator(color: AuraColors.primary),
+                      );
+                    }
+                    return ListView.builder(
+                      controller: c.scrollController,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      itemCount: c.messages.length,
+                      itemBuilder: (context, index) =>
+                          MessageBubble(message: c.messages[index]),
+                    );
+                  }),
+                ),
+                ChatInputBar(
+                  controller: c.inputController,
+                  mode: _mode,
+                  onToggleMode: _toggleMode,
+                  onSendText: c.sendMessage,
+                  isRecording: _isRecording,
+                  onRecordStart: _onRecordStart,
+                  onRecordMove: _onRecordMove,
+                  onRecordEnd: _onRecordEnd,
+                  onRecordCancel: _onRecordCancel,
+                ),
+              ],
+            ),
           ),
-          Expanded(
-            child: Obx(() {
-              if (c.isLoading.value && c.messages.isEmpty) {
-                return const Center(
-                  child: CircularProgressIndicator(color: AuraColors.primary),
-                );
-              }
-              return ListView.builder(
-                controller: c.scrollController,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                itemCount: c.messages.length,
-                itemBuilder: (context, index) =>
-                    MessageBubble(message: c.messages[index]),
-              );
-            }),
-          ),
-          ChatInputBar(
-            controller: c.inputController,
-            onSend: c.sendMessage,
-          ),
+          if (_isRecording)
+            VoiceRecordOverlay(isCancelling: _isCancelling),
         ],
       ),
     );
