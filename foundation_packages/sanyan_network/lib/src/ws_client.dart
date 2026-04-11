@@ -215,13 +215,16 @@ class WsClient extends GetxService {
   }
 
   String _prettyJson(dynamic data) {
-    if (data == null) return 'null';
-    try {
-      const encoder = JsonEncoder.withIndent('  ');
-      return encoder.convert(data);
-    } catch (_) {
-      return data.toString();
-    }
+    final raw = () {
+      if (data == null) return 'null';
+      try {
+        const encoder = JsonEncoder.withIndent('  ');
+        return encoder.convert(data);
+      } catch (_) {
+        return data.toString();
+      }
+    }();
+    return raw.split('\n').map((line) => '║ $line').join('\n');
   }
 
   void _onDisconnected() {
