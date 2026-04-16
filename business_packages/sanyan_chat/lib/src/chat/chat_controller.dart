@@ -177,7 +177,9 @@ class ChatController extends GetxController {
   }
 
   void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 100), () {
+    // 用 addPostFrameCallback 等到新消息完成 layout 后再滚，
+    // 否则 maxScrollExtent 还是旧值，新气泡会被输入框挡住。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (scrollController.hasClients) {
         scrollController.animateTo(
           scrollController.position.maxScrollExtent,
