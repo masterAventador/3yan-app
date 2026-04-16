@@ -45,8 +45,9 @@ void main() {
     LocalStorage.userId = null;
 
     app.main();
-    // 等登录页出现（启动期间可能有动画，pumpAndSettle 会等完）
-    await tester.pumpAndSettle(const Duration(seconds: 10));
+    // 启动只有登录页一个页面，不存在转场动画双页面共存问题，
+    // 用 _waitFor 轮询，避免被启动期 spinner 卡到 timeout。
+    await _waitFor(tester, find.text('走进更温暖的连接方式'), reason: '启动 → 登录页');
     await Future.delayed(const Duration(milliseconds: 250));
 
     // ========== Step 1: 登录页 → 跳转注册 ==========
