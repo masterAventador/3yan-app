@@ -49,7 +49,11 @@ class VoiceRecorder {
           // 44100 是 AAC 最稳的标准采样率；24000 在某些 iOS 版本上编码器初始化有 bug
           sampleRate: 44100,
           numChannels: 1,
-          iosConfig: IosRecordConfig(),
+          // AppDelegate 启动时已经 setCategory(.playAndRecord) + setActive(true)，
+          // record 包不要再重复整套 session 初始化（会累加 500ms~2s 延迟）。
+          // manageAudioSession 字段标 deprecated 但 record 5.x 目前没提供替代 API，仍然生效。
+          // ignore: deprecated_member_use
+          iosConfig: IosRecordConfig(manageAudioSession: false),
         ),
         path: _currentFilePath!,
       );
