@@ -9,6 +9,7 @@ import 'voice_recorder.dart';
 import 'widget/chat_input_bar.dart';
 import 'widget/chat_input_mode.dart';
 import 'widget/message_bubble.dart';
+import 'widget/typing_indicator.dart';
 import 'widget/voice_record_overlay.dart';
 
 class ChatPage extends StatefulWidget {
@@ -33,6 +34,18 @@ class _ChatPageState extends State<ChatPage> {
     conversation = Get.arguments as Conversation;
     c = Get.put(ChatController(conversation));
     _mode = ChatInputMode.fromStorage(LocalStorage.lastInputMode);
+    _warmupRecorder();
+  }
+
+  /// 进聊天页后台跑一次 start+cancel，触发 iOS AAC codec 首次初始化。
+  /// 之后 codec 被缓存，真正按住说话的启动时间能从 ~1s 降到百毫秒。
+  /// 只在已有权限时预热，避免静默触发系统权限弹窗。
+  Future<void> _warmupRecorder() async {
+    if (!await _recorder.isPermissionGranted()) return;
+    final started = await _recorder.start();
+    if (started) {
+      await _recorder.cancel();
+    }
   }
 
   @override
@@ -151,12 +164,21 @@ class _ChatPageState extends State<ChatPage> {
                         child: CircularProgressIndicator(color: AuraColors.primary),
                       );
                     }
+                    final showTyping = c.isAiTyping.value;
+                    final itemCount =
+                        c.messages.length + (showTyping ? 1 : 0);
                     return ListView.builder(
                       controller: c.scrollController,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      itemCount: c.messages.length,
-                      itemBuilder: (context, index) =>
-                          MessageBubble(message: c.messages[index]),
+                      itemCount: itemCount,
+                      itemBuilder: (context, index) {
+                        if (showTyping && index == c.messages.length) {
+                          return TypingIndicator(
+                            characterName: conversation.characterName ?? '',
+                          );
+                        }
+                        return MessageBubble(message: c.messages[index]);
+                      },
                     );
                   }),
                 ),
@@ -221,7 +243,7 @@ class _TopBar extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(12),
                   gradient: AuraColors.mintAzureGradient,
                   border: Border.all(
                     color: AuraColors.primaryFixed,

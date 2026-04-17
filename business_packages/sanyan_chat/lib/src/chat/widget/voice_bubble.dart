@@ -7,9 +7,29 @@ import 'package:sanyan_network/sanyan_network.dart';
 import '../../models/message.dart';
 import '../chat_controller.dart';
 
+/// 单例协调器：同时只允许一个 VoiceBubble 在播放，点新气泡先停当前的。
+class _VoicePlaybackCoordinator {
+  static _VoiceBubbleState? _current;
+
+  static Future<void> register(_VoiceBubbleState bubble) async {
+    if (_current != null && _current != bubble) {
+      await _current!._stopInternal();
+    }
+    _current = bubble;
+  }
+
+  static void unregister(_VoiceBubbleState bubble) {
+    if (_current == bubble) _current = null;
+  }
+}
+
 class VoiceBubble extends StatefulWidget {
   final Message message;
-  const VoiceBubble({super.key, required this.message});
+
+  /// 外层传入的气泡最大宽度上限（60s 对应的满宽）。
+  final double maxWidth;
+
+  const VoiceBubble({super.key, required this.message, required this.maxWidth});
 
   @override
   State<VoiceBubble> createState() => _VoiceBubbleState();
@@ -19,51 +39,122 @@ class _VoiceBubbleState extends State<VoiceBubble> {
   final AudioPlayer _player = AudioPlayer();
   bool _isPlaying = false;
 
-  // Fixed random-looking bar heights generated once
-  static final List<double> _barHeights = _generateBars();
+  // 波形参数
+  static const int _maxSeconds = 60;
+  static const int _minBars = 3;
+  static const int _maxBars = 40;
+  static const double _barSlot = 5.0; // bar 3px + padding 1*2
 
-  static List<double> _generateBars() {
+  // 气泡内部尺寸参数
+  static const double _paddingH = 12.0;
+  static const double _paddingV = 8.0;
+  static const double _bubbleHeight = 40.0;
+  static const double _waveTextGap = 8.0;
+  static const double _durationTextWidth = 28.0; // "0:XX" Inter 11 约 22-25px
+
+  // 40 根备选波形条高度（0.3~1.0 随机），所有气泡共享
+  static final List<double> _barHeights = _generateBars(_maxBars);
+
+  static List<double> _generateBars(int count) {
     final rng = math.Random(42);
-    return List.generate(15, (_) => 0.3 + rng.nextDouble() * 0.7);
+    return List.generate(count, (_) => 0.3 + rng.nextDouble() * 0.7);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _player.onPlayerComplete.listen((_) {
+      if (mounted) setState(() => _isPlaying = false);
+      _VoicePlaybackCoordinator.unregister(this);
+    });
   }
 
   @override
   void dispose() {
+    _VoicePlaybackCoordinator.unregister(this);
     _player.dispose();
     super.dispose();
   }
 
   Future<void> _togglePlay() async {
     if (_isPlaying) {
-      await _player.stop();
-      setState(() => _isPlaying = false);
-    } else {
-      setState(() => _isPlaying = true);
-      await _player.play(UrlSource(widget.message.mediaUrl!));
-      _player.onPlayerComplete.listen((_) {
-        if (mounted) setState(() => _isPlaying = false);
-      });
+      await _stopInternal();
+      return;
     }
+
+    // 播放源：优先 mediaUrl，刚发送上传未完成时兜底走 localFilePath
+    final url = widget.message.mediaUrl;
+    final local = widget.message.localFilePath;
+    if (url == null && local == null) return;
+
+    await _VoicePlaybackCoordinator.register(this);
+    setState(() => _isPlaying = true);
+
+    try {
+      if (url != null) {
+        await _player.play(UrlSource(url));
+      } else {
+        await _player.play(DeviceFileSource(local!));
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isPlaying = false);
+      _VoicePlaybackCoordinator.unregister(this);
+    }
+  }
+
+  Future<void> _stopInternal() async {
+    await _player.stop();
+    if (mounted) setState(() => _isPlaying = false);
+    _VoicePlaybackCoordinator.unregister(this);
+  }
+
+  String _formatDuration(int? seconds) {
+    if (seconds == null || seconds <= 0) return '0:00';
+    final m = seconds ~/ 60;
+    final s = seconds % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  /// 根据语音时长算出波形条数：duration/60 × 40，clamp 到 [minBars, maxBars]，
+  /// 再进一步 clamp 不超过外层 maxWidth 允许的上限。
+  int _computeBarCount() {
+    final seconds = widget.message.duration ?? 0;
+    int n = (seconds * _maxBars / _maxSeconds).round();
+    if (n < _minBars) n = _minBars;
+    if (n > _maxBars) n = _maxBars;
+
+    final nonWaveWidth = _paddingH * 2 + _waveTextGap + _durationTextWidth;
+    final maxBarsByWidth =
+        ((widget.maxWidth - nonWaveWidth) / _barSlot).floor();
+    if (n > maxBarsByWidth) n = maxBarsByWidth;
+    if (n < _minBars) n = _minBars;
+    return n;
   }
 
   @override
   Widget build(BuildContext context) {
     final isUser = widget.message.senderType == SenderType.user;
+    final n = _computeBarCount();
 
-    return GestureDetector(
-      onTap: _togglePlay,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.6),
-        child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    // 气泡宽度直接由条数公式算出，不依赖内容的 intrinsic 尺寸，first frame 就是最终尺寸
+    final bubbleW = _paddingH * 2 + n * _barSlot + _waveTextGap + _durationTextWidth;
+
+    final bubble = SizedBox(
+      width: bubbleW,
+      height: _bubbleHeight,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: _paddingH,
+          vertical: _paddingV,
+        ),
         decoration: BoxDecoration(
           gradient: isUser ? AuraColors.userBubbleGradient : null,
           color: isUser ? null : AuraColors.surfaceContainerLowest,
           borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(isUser ? 24 : 0),
-            topRight: Radius.circular(isUser ? 0 : 24),
-            bottomLeft: const Radius.circular(24),
-            bottomRight: const Radius.circular(24),
+            topLeft: Radius.circular(isUser ? 12 : 4),
+            topRight: Radius.circular(isUser ? 4 : 12),
+            bottomLeft: const Radius.circular(12),
+            bottomRight: const Radius.circular(12),
           ),
           boxShadow: isUser
               ? null
@@ -78,100 +169,115 @@ class _VoiceBubbleState extends State<VoiceBubble> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Play / pause button circle
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isUser
-                    ? Colors.white
-                    : AuraColors.primary.withValues(alpha: 0.12),
-              ),
-              child: Icon(
-                _isPlaying ? Icons.pause : Icons.play_arrow,
-                color: isUser ? AuraColors.primary : AuraColors.primary,
-                size: 22,
-              ),
+            _Waveform(
+              isUser: isUser,
+              isPlaying: _isPlaying,
+              bars: _barHeights.take(n).toList(),
             ),
-            const SizedBox(width: 10),
-            // Waveform bars
-            Flexible(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final barWidth = 3.0;
-                  final barSpacing = 2.0; // horizontal padding * 2
-                  final maxBars = ((constraints.maxWidth) / (barWidth + barSpacing)).floor().clamp(1, 15);
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: List.generate(maxBars, (i) {
-                      final h = _barHeights[i] * 28;
-                      final color = isUser
-                          ? Colors.white.withValues(alpha: _isPlaying ? 0.9 : 0.5)
-                          : AuraColors.primary.withValues(alpha: _isPlaying ? 0.6 : 0.35);
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 1),
-                        child: AnimatedContainer(
-                          duration: Duration(milliseconds: _isPlaying ? 300 + i * 40 : 200),
-                          width: 3,
-                          height: _isPlaying ? h : h * 0.5,
-                          decoration: BoxDecoration(
-                            color: color,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      );
-                    }),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(width: 10),
-            // Duration
+            const SizedBox(width: _waveTextGap),
             Text(
-              '0:00', // TODO: 等后端 Message 增加 mediaDuration 字段后替换
+              _formatDuration(widget.message.duration),
               style: TextStyle(
                 fontFamily: AuraFonts.inter,
                 fontSize: 11,
                 color: isUser
-                    ? Colors.white.withValues(alpha: 0.8)
+                    ? Colors.white.withValues(alpha: 0.85)
                     : AuraColors.onSurfaceVariant,
               ),
             ),
-            // State indicator
-            if (widget.message.isSending) ...[
-              const SizedBox(width: 8),
-              const SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
-                ),
-              ),
-            ] else if (widget.message.isFailed) ...[
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () {
-                  final c = Get.find<ChatController>();
-                  c.retryVoiceMessage(widget.message);
-                },
-                child: Container(
-                  width: 18,
-                  height: 18,
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.priority_high, color: Colors.white, size: 12),
-                ),
-              ),
-            ],
           ],
         ),
       ),
+    );
+
+    final statusIcon = _buildStatusIcon();
+
+    // 状态图标用 Stack 绝对定位在气泡外部：Stack size = bubble size，
+    // 状态出现/消失不影响气泡尺寸或位置。
+    return GestureDetector(
+      onTap: _togglePlay,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          bubble,
+          if (statusIcon != null)
+            Positioned(
+              left: isUser ? -24 : null,
+              right: !isUser ? -24 : null,
+              top: 0,
+              bottom: 0,
+              child: Center(child: statusIcon),
+            ),
+        ],
       ),
+    );
+  }
+
+  Widget? _buildStatusIcon() {
+    if (widget.message.isSending) {
+      return const SizedBox(
+        width: 14,
+        height: 14,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(AuraColors.primary),
+        ),
+      );
+    }
+    if (widget.message.isFailed) {
+      return GestureDetector(
+        onTap: () {
+          Get.find<ChatController>().retryVoiceMessage(widget.message);
+        },
+        child: Container(
+          width: 18,
+          height: 18,
+          decoration: const BoxDecoration(
+            color: Colors.red,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.priority_high, color: Colors.white, size: 12),
+        ),
+      );
+    }
+    return null;
+  }
+}
+
+/// 波形条：条数由 parent 传入，自身 mainAxisSize.min
+class _Waveform extends StatelessWidget {
+  final bool isUser;
+  final bool isPlaying;
+  final List<double> bars;
+
+  const _Waveform({
+    required this.isUser,
+    required this.isPlaying,
+    required this.bars,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: List.generate(bars.length, (i) {
+        final h = bars[i] * 24;
+        final color = isUser
+            ? Colors.white.withValues(alpha: isPlaying ? 0.9 : 0.5)
+            : AuraColors.primary.withValues(alpha: isPlaying ? 0.6 : 0.35);
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 1),
+          child: Container(
+            width: 3,
+            height: isPlaying ? h : h * 0.5,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        );
+      }),
     );
   }
 }

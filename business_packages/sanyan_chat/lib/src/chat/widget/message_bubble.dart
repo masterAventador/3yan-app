@@ -5,6 +5,17 @@ import '../../models/message.dart';
 import 'voice_bubble.dart';
 import 'video_bubble.dart';
 
+// 头像尺寸与气泡最大宽度约束（气泡最长不能越过对面预留的头像位）
+const double _avatarSize = 40;
+const double _avatarGap = 10;
+
+/// 气泡（含语音时长对应宽度、文本软换行）可用的最大宽度：
+/// 屏宽 − 两侧 pagePadding − 双侧头像 − 双侧间距
+double _maxBubbleWidth(BuildContext context) {
+  final w = MediaQuery.of(context).size.width;
+  return w - AuraSpacing.pagePadding * 2 - _avatarSize * 2 - _avatarGap * 2;
+}
+
 class MessageBubble extends StatelessWidget {
   final Message message;
   const MessageBubble({super.key, required this.message});
@@ -13,50 +24,72 @@ class MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final isUser = message.senderType == SenderType.user;
     final isVideo = message.contentType == ContentType.video;
+    final maxW = _maxBubbleWidth(context);
+
+    final avatar = _Avatar(isUser: isUser);
+
+    // Column 外层套 ConstrainedBox(maxWidth: maxW)：
+    // Flexible 给的最大宽度是 "Row 宽 - 自己头像 - gap"（不含对面预留），
+    // 不加 ConstrainedBox 气泡会侵入对方头像应占的区域。
+    // maxW = 屏宽 - 2 × pagePadding - 2 × avatar - 2 × gap，两端都预留头像位。
+    final bubble = ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxW),
+      child: Column(
+        crossAxisAlignment:
+            isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (message.isVoice)
+            VoiceBubble(message: message, maxWidth: maxW)
+          else if (isVideo)
+            VideoBubble(isUser: isUser)
+          else
+            _TextBubble(message: message, isUser: isUser),
+          const SizedBox(height: 4),
+          _Timestamp(message: message, isUser: isUser),
+        ],
+      ),
+    );
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: AuraSpacing.pagePadding, vertical: 6),
+      padding:
+          EdgeInsets.symmetric(horizontal: AuraSpacing.pagePadding, vertical: 3),
       child: Row(
-        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // AI avatar
-          if (!isUser) ...[
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: AuraColors.mintAzureGradient,
-                border: Border.all(
-                  color: AuraColors.primaryFixed.withValues(alpha: 0.6),
-                  width: 1.5,
-                ),
-              ),
-              child: const Icon(Icons.favorite, color: Colors.white, size: 18),
-            ),
-            const SizedBox(width: 10),
-          ],
+        children: isUser
+            ? [Flexible(child: bubble), const SizedBox(width: _avatarGap), avatar]
+            : [avatar, const SizedBox(width: _avatarGap), Flexible(child: bubble)],
+      ),
+    );
+  }
+}
 
-          // Bubble content
-          Flexible(
-            child: Column(
-              crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-              children: [
-                if (message.isVoice)
-                  VoiceBubble(message: message)
-                else if (isVideo)
-                  VideoBubble(isUser: isUser)
-                else
-                  _TextBubble(message: message, isUser: isUser),
-                const SizedBox(height: 4),
-                _Timestamp(message: message, isUser: isUser),
-              ],
-            ),
-          ),
+/// 头像：AI 用爱心图标 + 薄荷渐变；用户用人形图标 + 紫色渐变
+class _Avatar extends StatelessWidget {
+  final bool isUser;
+  const _Avatar({required this.isUser});
 
-          if (isUser) const SizedBox(width: 10),
-        ],
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: _avatarSize,
+      height: _avatarSize,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        gradient: isUser
+            ? AuraColors.userBubbleGradient
+            : AuraColors.mintAzureGradient,
+        border: Border.all(
+          color: AuraColors.primaryFixed.withValues(alpha: 0.6),
+          width: 1.5,
+        ),
+      ),
+      child: Icon(
+        isUser ? Icons.person : Icons.favorite,
+        color: Colors.white,
+        size: 18,
       ),
     );
   }
@@ -72,15 +105,18 @@ class _TextBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      // 气泡与头像对齐（40）：14 × 1.3 + 11 × 2 ≈ 40
+      // ⚠️ 不能设 alignment！alignment + bounded parent constraints 会让 Container 扩展到最大宽度。
+      constraints: const BoxConstraints(minHeight: 40),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       decoration: BoxDecoration(
         gradient: isUser ? AuraColors.userBubbleGradient : null,
         color: isUser ? null : AuraColors.surfaceContainerLowest,
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(isUser ? 16 : 0),
-          topRight: Radius.circular(isUser ? 0 : 16),
-          bottomLeft: const Radius.circular(16),
-          bottomRight: const Radius.circular(16),
+          topLeft: Radius.circular(isUser ? 10 : 2),
+          topRight: Radius.circular(isUser ? 2 : 10),
+          bottomLeft: const Radius.circular(10),
+          bottomRight: const Radius.circular(10),
         ),
         boxShadow: isUser
             ? null
@@ -95,8 +131,8 @@ class _TextBubble extends StatelessWidget {
       child: Text(
         message.content,
         style: TextStyle(
-          fontSize: 15,
-          height: 1.5,
+          fontSize: 14,
+          height: 1.3,
           color: isUser ? Colors.white : AuraColors.onSurface,
         ),
       ),
@@ -124,27 +160,13 @@ class _Timestamp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final timeStr = _formatTime(message.createdAt);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (isUser) ...[
-          const Icon(
-            Icons.done_all,
-            size: 12,
-            color: AuraColors.primary,
-          ),
-          const SizedBox(width: 4),
-        ],
-        Text(
-          timeStr,
-          style: TextStyle(
-            fontFamily: AuraFonts.inter,
-            fontSize: 10,
-            color: AuraColors.onSurfaceVariant.withValues(alpha: 0.7),
-          ),
-        ),
-      ],
+    return Text(
+      _formatTime(message.createdAt),
+      style: TextStyle(
+        fontFamily: AuraFonts.inter,
+        fontSize: 10,
+        color: AuraColors.onSurfaceVariant.withValues(alpha: 0.7),
+      ),
     );
   }
 }

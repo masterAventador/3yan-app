@@ -24,11 +24,12 @@ class ConversationListPage extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(12),
                     color: AuraColors.surfaceContainerLowest,
                     border: Border.all(color: AuraColors.primaryFixed, width: 2),
                   ),
-                  child: ClipOval(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
                     child: Image.asset(
                       'packages/sanyan_auth/assets/images/logo.png',
                       fit: BoxFit.cover,
@@ -184,8 +185,8 @@ class _ConversationItem extends StatelessWidget {
                   Container(
                     width: 56,
                     height: 56,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
                       gradient: AuraColors.mintAzureGradient,
                     ),
                     child: const Icon(Icons.favorite, color: Colors.white, size: 26),
