@@ -7,7 +7,7 @@ class Message {
   final String senderType;
   final String contentType;
   final String content;
-  final String? mediaUrl;
+  String? mediaUrl;
   final String source;
   final String createdAt;
   final String? clientMsgId;
@@ -32,7 +32,10 @@ class Message {
 
   bool get isFromAi => senderType == SenderType.ai;
   bool get isProactive => source == 'proactive';
-  bool get isVoice => contentType == ContentType.voice && mediaUrl != null;
+  // 只看 contentType 就够了。mediaUrl 为 null 时（刚发送、上传中）也该走语音 bubble，
+  // 否则会短暂降级成空文字 bubble，视觉上是一个只有 padding 的小方块。
+  // VoiceBubble 内部有 localFilePath 兜底播放，不需要 mediaUrl 才能渲染。
+  bool get isVoice => contentType == ContentType.voice;
   bool get isSending => status == MessageStatus.sending;
   bool get isFailed => status == MessageStatus.failed;
 

@@ -8,7 +8,6 @@ import '../home/conversation_list_controller.dart';
 import '../models/conversation.dart';
 import '../models/message.dart';
 import '../models/message_status.dart';
-import 'voice_cache_manager.dart';
 
 class ChatController extends GetxController {
   final Conversation conversation;
@@ -142,6 +141,13 @@ class ChatController extends GetxController {
         return;
       }
 
+      // 上传成功后立刻回写 mediaUrl + 标记为 sent，移除发送中 loading：
+      // COS 已有文件说明上传链路完成，WebSocket 的 ACK 只是双重确认，
+      // 等 ACK 会让 loading 一直不消失（ACK 偶发丢失时）。
+      msg.mediaUrl = uploadResp.data!.url;
+      msg.status = MessageStatus.sent;
+      messages.refresh();
+
       final wsClient = Get.find<WsClient>();
       wsClient.sendVoiceMessage(
         conversationId: conversation.id,
@@ -149,7 +155,6 @@ class ChatController extends GetxController {
         duration: uploadResp.data!.duration,
         clientMsgId: msg.clientMsgId,
       );
-      // ACK will be handled in _listenWs → _onAck
     } catch (_) {
       _markFailed(msg);
     }
@@ -170,22 +175,18 @@ class ChatController extends GetxController {
     msg.status = MessageStatus.sent;
     messages.refresh();
 
-    // Delete local file for voice messages
-    if (msg.localFilePath != null) {
-      VoiceCacheManager.deleteFile(msg.localFilePath!);
-    }
+    // 不立刻删除 localFilePath，ACK 之后仍保留本地文件作为播放兜底
+    // （即使 mediaUrl 暂时网络不通也能播自己的录音）。
+    // 7 天过期由 VoiceCacheManager.cleanupOldFiles 定期清理。
   }
 
   void _scrollToBottom() {
     // 用 addPostFrameCallback 等到新消息完成 layout 后再滚，
     // 否则 maxScrollExtent 还是旧值，新气泡会被输入框挡住。
+    // 用 jumpTo 瞬间滚到底，避免 animateTo 过程中新 item 渐进入场引起视觉跳变。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (scrollController.hasClients) {
-        scrollController.animateTo(
-          scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-        );
+        scrollController.jumpTo(scrollController.position.maxScrollExtent);
       }
     });
   }
