@@ -49,7 +49,11 @@ abstract class ChatApi {
   }) async {
     try {
       final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(localFilePath, filename: 'voice.m4a'),
+        // 从本地文件路径提取真实后缀传给服务端（服务端根据后缀决定 COS key 和 content-type）
+        'file': await MultipartFile.fromFile(
+          localFilePath,
+          filename: 'voice${localFilePath.substring(localFilePath.lastIndexOf('.'))}',
+        ),
         'type': ContentType.voice,
         'duration': duration,
       });

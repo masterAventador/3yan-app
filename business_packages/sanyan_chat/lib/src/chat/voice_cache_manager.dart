@@ -15,10 +15,10 @@ class VoiceCacheManager {
     return voiceDir;
   }
 
-  /// Generate a new voice file path
-  static Future<String> newVoiceFilePath(String uuid) async {
+  /// Generate a new voice file path with the given extension (e.g. 'wav', 'm4a')
+  static Future<String> newVoiceFilePath(String uuid, String ext) async {
     final dir = await getCacheDir();
-    return '${dir.path}/$uuid.m4a';
+    return '${dir.path}/$uuid.$ext';
   }
 
   /// Delete a single file
