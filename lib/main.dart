@@ -12,6 +12,10 @@ import 'home_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await LocalStorage.init();
+  // 把 AVAudioSession 默认 category 改成 playAndRecord，避免 audioplayers 默认的
+  // .playback 占用 session 导致 record 的 AAC 编码器初始化失败。必须在任何 AudioPlayer
+  // 使用之前调用。
+  await initAudioSession();
   // Clean up voice cache files older than 7 days
   unawaited(VoiceCacheManager.cleanupOldFiles());
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:record/record.dart';
 import 'package:uuid/uuid.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -14,6 +15,7 @@ class VoiceRecorder {
   static const _uuid = Uuid();
   static const maxDurationSeconds = 60;
   static const minDurationSeconds = 1;
+  static const _fileExt = 'm4a';
 
   final _recorder = AudioRecorder();
   DateTime? _startTime;
@@ -21,25 +23,33 @@ class VoiceRecorder {
   Timer? _maxDurationTimer;
   void Function()? _onMaxDurationReached;
 
-  /// Check and request microphone permission
-  Future<bool> ensurePermission() async {
+  /// Check current microphone permission status WITHOUT triggering system dialog.
+  Future<bool> isPermissionGranted() async {
+    return Permission.microphone.isGranted;
+  }
+
+  /// Request microphone permission (may trigger iOS system dialog).
+  Future<bool> requestPermission() async {
     final status = await Permission.microphone.request();
     return status.isGranted;
   }
 
-  /// Start recording. Returns false if permission denied or failed.
+  /// Start recording. Caller must ensure permission is already granted
+  /// (first-time grant should NOT immediately start recording — the long-press
+  /// gesture is lost while the system permission dialog is showing).
   Future<bool> start({void Function()? onMaxDurationReached}) async {
-    if (!await ensurePermission()) return false;
-
     try {
       final uuid = _uuid.v4();
-      _currentFilePath = await VoiceCacheManager.newVoiceFilePath(uuid);
+      _currentFilePath =
+          await VoiceCacheManager.newVoiceFilePath(uuid, _fileExt);
 
       await _recorder.start(
         const RecordConfig(
           encoder: AudioEncoder.aacLc,
-          sampleRate: 24000,
+          // 44100 是 AAC 最稳的标准采样率；24000 在某些 iOS 版本上编码器初始化有 bug
+          sampleRate: 44100,
           numChannels: 1,
+          iosConfig: IosRecordConfig(),
         ),
         path: _currentFilePath!,
       );

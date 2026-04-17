@@ -51,9 +51,16 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> _onRecordStart(Offset globalPosition) async {
-    final granted = await _recorder.ensurePermission();
-    if (!granted) {
-      _showToast('需要麦克风权限才能发送语音');
+    // 权限已授予 → 直接开始录音。
+    // 权限未授予 → 弹系统弹窗询问，弹窗会打断长按手势，此时不应该继续开始录音
+    //             （否则用户手指早已离开按钮，录音会卡死），而是提示用户再次按住。
+    if (!await _recorder.isPermissionGranted()) {
+      final granted = await _recorder.requestPermission();
+      if (!granted) {
+        _showToast('需要麦克风权限才能发送语音');
+      } else {
+        _showToast('麦克风权限已获取，请再次按住说话');
+      }
       return;
     }
 
