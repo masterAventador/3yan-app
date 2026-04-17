@@ -146,17 +146,45 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AuraColors.surface,
+      appBar: AppBar(
+        title: Text(
+          conversation.characterName ?? '',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AuraColors.primary,
+          ),
+        ),
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(
+              sigmaX: AuraColors.glassBlur,
+              sigmaY: AuraColors.glassBlur,
+            ),
+            child: Container(color: AuraColors.surface.withValues(alpha: 0.6)),
+          ),
+        ),
+        actions: [
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.search, color: AuraColors.primary),
+          ),
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.more_vert, color: AuraColors.primary),
+          ),
+        ],
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, thickness: 1, color: Color(0xFFD4FBFB)),
+        ),
+      ),
       body: Stack(
         children: [
           SafeArea(
+            top: false,
             child: Column(
               children: [
-                _TopBar(conversation: conversation),
-                const Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: Color(0xFFD4FBFB),
-                ),
                 Expanded(
                   child: Obx(() {
                     if (c.isLoading.value && c.messages.isEmpty) {
@@ -199,120 +227,6 @@ class _ChatPageState extends State<ChatPage> {
           if (_isRecording)
             VoiceRecordOverlay(isCancelling: _isCancelling),
         ],
-      ),
-    );
-  }
-}
-
-// ─── Frosted glass top bar ────────────────────────────────────────────────────
-
-class _TopBar extends StatelessWidget {
-  final Conversation conversation;
-  const _TopBar({required this.conversation});
-
-  @override
-  Widget build(BuildContext context) {
-    final topPadding = MediaQuery.of(context).padding.top;
-
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(
-          sigmaX: AuraColors.glassBlur,
-          sigmaY: AuraColors.glassBlur,
-        ),
-        child: Container(
-          color: AuraColors.surface.withValues(alpha: 0.6),
-          padding: EdgeInsets.only(
-            top: topPadding + 8,
-            bottom: 12,
-            left: 4,
-            right: 8,
-          ),
-          child: Row(
-            children: [
-              // Back arrow
-              IconButton(
-                onPressed: () => Get.back(),
-                icon: const Icon(Icons.arrow_back, color: AuraColors.primary),
-                iconSize: 24,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-              ),
-
-              // Avatar
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  gradient: AuraColors.mintAzureGradient,
-                  border: Border.all(
-                    color: AuraColors.primaryFixed,
-                    width: 2,
-                  ),
-                ),
-                child: const Icon(Icons.favorite, color: Colors.white, size: 18),
-              ),
-              const SizedBox(width: 10),
-
-              // Name + online status
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      conversation.characterName ?? '',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AuraColors.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Color(0xFF4CAF50),
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'ONLINE',
-                          style: TextStyle(
-                            fontFamily: AuraFonts.inter,
-                            fontSize: 10,
-                            letterSpacing: 0.8,
-                            color: AuraColors.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              // Search icon
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.search, color: AuraColors.primary),
-                iconSize: 22,
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-              ),
-
-              // More icon
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.more_vert, color: AuraColors.primary),
-                iconSize: 22,
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

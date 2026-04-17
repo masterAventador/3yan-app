@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'aura_colors.dart';
 import 'aura_fonts.dart';
 
@@ -14,6 +15,12 @@ class AuraTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
+        // 背景是浅色（白 + 毛玻璃），状态栏文字/图标必须为深色
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark, // Android
+          statusBarBrightness: Brightness.light, // iOS: light 背景 → dark 文字
+        ),
         titleTextStyle: TextStyle(
           fontFamily: AuraFonts.manrope,
           fontSize: 17,

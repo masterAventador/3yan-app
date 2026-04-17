@@ -244,8 +244,8 @@ class _VoiceBubbleState extends State<VoiceBubble> {
   }
 }
 
-/// 波形条：条数由 parent 传入，自身 mainAxisSize.min
-class _Waveform extends StatelessWidget {
+/// 波形条：播放时每根条按正弦相位连续上下跳动，静止时维持 50% 高度。
+class _Waveform extends StatefulWidget {
   final bool isUser;
   final bool isPlaying;
   final List<double> bars;
@@ -257,27 +257,77 @@ class _Waveform extends StatelessWidget {
   });
 
   @override
+  State<_Waveform> createState() => _WaveformState();
+}
+
+class _WaveformState extends State<_Waveform> with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    if (widget.isPlaying) _ctrl.repeat();
+  }
+
+  @override
+  void didUpdateWidget(covariant _Waveform oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isPlaying && !_ctrl.isAnimating) {
+      _ctrl.repeat();
+    } else if (!widget.isPlaying && _ctrl.isAnimating) {
+      _ctrl.stop();
+      _ctrl.value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: List.generate(bars.length, (i) {
-        final h = bars[i] * 24;
-        final color = isUser
-            ? Colors.white.withValues(alpha: isPlaying ? 0.9 : 0.5)
-            : AuraColors.primary.withValues(alpha: isPlaying ? 0.6 : 0.35);
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 1),
-          child: Container(
-            width: 3,
-            height: isPlaying ? h : h * 0.5,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
+    final color = widget.isUser
+        ? Colors.white.withValues(alpha: widget.isPlaying ? 0.9 : 0.5)
+        : AuraColors.primary.withValues(alpha: widget.isPlaying ? 0.6 : 0.35);
+
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, _) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: List.generate(widget.bars.length, (i) {
+            final base = widget.bars[i] * 24;
+            double h;
+            if (widget.isPlaying) {
+              // 每根条有相位偏移，形成波浪式起伏；范围 [35%, 100%] × base
+              final phase = i * 0.55;
+              final t = _ctrl.value * 2 * math.pi + phase;
+              final factor = 0.35 + 0.65 * (0.5 + 0.5 * math.sin(t));
+              h = base * factor;
+            } else {
+              h = base * 0.5;
+            }
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 1),
+              child: Container(
+                width: 3,
+                height: h,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            );
+          }),
         );
-      }),
+      },
     );
   }
 }
