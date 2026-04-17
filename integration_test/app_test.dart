@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:sanyan_chat/sanyan_chat.dart';
 import 'package:sanyan_user/sanyan_user.dart';
 import 'package:sanyan_app/main.dart' as app;
+
+/// 匹配任意正在播放的语音气泡（VoiceBubble 在 _isPlaying 时会挂
+/// ValueKey('voice_playing_[msgId]') 到外层 GestureDetector）。
+final _playingVoiceFinder = find.byWidgetPredicate((w) {
+  final k = w.key;
+  return k is ValueKey &&
+      k.value is String &&
+      (k.value as String).startsWith('voice_playing_');
+});
 
 /// E2E 全流程测试：登录 → 进入聊天 → 发消息 → 收 AI 语音回复 → 点击播放 → 等播放完成
 ///
@@ -103,64 +114,68 @@ void main() {
     // ========== Step 5: 等待 AI 语音回复 ==========
     debugPrint('[E2E] Step 5: 等待 AI 语音回复...');
 
-    // 用 play_arrow icon 数量变化检测：每条 AI 语音气泡都有一个 play_arrow，
-    // 比 Text 匹配更可靠（避免匹配到历史消息）。
-    final initialPlayCount = find.byIcon(Icons.play_arrow).evaluate().length;
-    debugPrint('[E2E] 当前已有 $initialPlayCount 条历史语音消息');
+    // 判定 AI 回复：找到刚发的用户消息，它后面一条是 AI 消息就算回了。
+    // 不能靠总数变化判断——AI 可能在 Step 4 的 pumpAndSettle 里就回完了。
+    final chatCtrl = Get.find<ChatController>();
 
-    bool aiReplied = false;
-    for (int i = 0; i < 30; i++) {
-      await tester.pump(const Duration(seconds: 1));
-      final currentCount = find.byIcon(Icons.play_arrow).evaluate().length;
-      if (currentCount > initialPlayCount) {
-        aiReplied = true;
-        debugPrint('[E2E] AI 语音消息到达（${i + 1}s 后），现在共 $currentCount 条');
-        break;
+    Message? aiReply;
+    for (int i = 0; i < 5; i++) {
+      final userIdx =
+          chatCtrl.messages.indexWhere((m) => m.content == testMessage);
+      if (userIdx != -1 && userIdx < chatCtrl.messages.length - 1) {
+        final after = chatCtrl.messages[userIdx + 1];
+        if (after.isFromAi) {
+          aiReply = after;
+          debugPrint('[E2E] AI 回复已到 id=${after.id} '
+              'type=${after.contentType} mediaUrl=${after.mediaUrl} '
+              'duration=${after.duration}');
+          break;
+        }
       }
+      await tester.pump(const Duration(seconds: 1));
     }
 
-    expect(aiReplied, isTrue, reason: 'AI 应在 30 秒内回复语音消息（play_arrow 数量增加）');
+    expect(aiReply, isNotNull, reason: 'AI 应在 5 秒内回复');
+    expect(aiReply!.isVoice, isTrue,
+        reason: 'AI 回复应是语音消息，实际 contentType=${aiReply.contentType}');
 
     // ========== Step 6: 点击播放 AI 语音回复 ==========
     debugPrint('[E2E] Step 6: 播放 AI 语音回复');
 
-    // 等 1 秒让 AI 语音气泡完全渲染 + auto-scroll 稳定
-    await tester.pump(const Duration(seconds: 1));
-
-    final playIcons = find.byIcon(Icons.play_arrow);
-    final playIconCount = playIcons.evaluate().length;
-    debugPrint('[E2E] 找到 $playIconCount 个播放按钮，点击最后一个（AI 最新回复）');
-
-    // 取最新 AI 语音气泡（最后一个 play_arrow）
-    final latestPlayIcon = playIcons.at(playIconCount - 1);
+    // 按消息 id 精准定位这一条 AI 语音气泡
+    final aiReplyId = aiReply.id;
+    final targetBubble = find.byWidgetPredicate(
+      (w) => w is VoiceBubble && w.message.id == aiReplyId,
+    );
+    await _waitFor(tester, targetBubble,
+        maxSeconds: 3, reason: 'AI 语音气泡应出现在列表中');
 
     // ensureVisible 把它滚到视图中心，避开输入框遮挡
-    await tester.ensureVisible(latestPlayIcon);
+    await tester.ensureVisible(targetBubble);
     await tester.pump(const Duration(milliseconds: 300));
 
-    // 点击
-    await tester.tap(latestPlayIcon);
+    await tester.tap(targetBubble);
 
-    // 轮询等 pause icon 出现（tap 后应立即同步 setState，但保险起见最多等 3 秒）
-    bool pauseVisible = false;
+    // 轮询等播放态 Key 出现（tap 后应立即同步 setState，但保险起见最多等 3 秒）
+    bool playingVisible = false;
     for (int i = 0; i < 30; i++) {
       await tester.pump(const Duration(milliseconds: 100));
-      if (find.byIcon(Icons.pause).evaluate().isNotEmpty) {
-        pauseVisible = true;
-        debugPrint('[E2E] pause icon 出现（${(i + 1) * 100}ms 后）');
+      if (_playingVoiceFinder.evaluate().isNotEmpty) {
+        playingVisible = true;
+        debugPrint('[E2E] 播放态 Key 出现（${(i + 1) * 100}ms 后）');
         break;
       }
     }
-    expect(pauseVisible, isTrue,
-        reason: '点击后应在 3 秒内显示 pause icon（说明开始播放）');
+    expect(playingVisible, isTrue,
+        reason: '点击后应在 3 秒内挂上 voice_playing_* Key（说明开始播放）');
 
     // ========== Step 7: 等待播放完成 ==========
     debugPrint('[E2E] Step 7: 等待播放完成...');
     bool playbackFinished = false;
     for (int i = 0; i < 60; i++) {
       await tester.pump(const Duration(seconds: 1));
-      // 播放完成时 onPlayerComplete 回调把 _isPlaying 置 false，pause icon 消失
-      if (find.byIcon(Icons.pause).evaluate().isEmpty) {
+      // 播放完成时 onPlayerComplete 回调把 _isPlaying 置 false，playing Key 消失
+      if (_playingVoiceFinder.evaluate().isEmpty) {
         playbackFinished = true;
         debugPrint('[E2E] 播放完成（${i + 1}s 后）');
         break;

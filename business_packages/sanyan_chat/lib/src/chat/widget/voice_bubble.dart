@@ -194,7 +194,9 @@ class _VoiceBubbleState extends State<VoiceBubble> {
 
     // 状态图标用 Stack 绝对定位在气泡外部：Stack size = bubble size，
     // 状态出现/消失不影响气泡尺寸或位置。
+    // 播放态挂一个可发现的 key，供 E2E 测试探测。
     return GestureDetector(
+      key: _isPlaying ? ValueKey('voice_playing_${widget.message.id}') : null,
       onTap: _togglePlay,
       child: Stack(
         clipBehavior: Clip.none,
