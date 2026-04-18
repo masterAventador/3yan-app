@@ -4,8 +4,7 @@ import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 
 /// AI 正在输入指示器：AI 头像 + 3 个弹跳小圆点 + "正在输入"
 class TypingIndicator extends StatefulWidget {
-  final String characterName;
-  const TypingIndicator({super.key, required this.characterName});
+  const TypingIndicator({super.key});
 
   @override
   State<TypingIndicator> createState() => _TypingIndicatorState();
@@ -54,11 +53,13 @@ class _TypingIndicatorState extends State<TypingIndicator>
 
   @override
   Widget build(BuildContext context) {
+    // 布局跟 MessageBubble 对齐，保证切换到真实 AI 消息时头像/气泡位置不跳。
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: AuraSpacing.pagePadding, vertical: 8),
+      padding:
+          EdgeInsets.symmetric(horizontal: AuraSpacing.pagePadding, vertical: 3),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 左侧 AI 头像（跟 MessageBubble 风格一致）
           Container(
             width: 40,
             height: 40,
@@ -73,22 +74,53 @@ class _TypingIndicatorState extends State<TypingIndicator>
             child: const Icon(Icons.favorite, color: Colors.white, size: 18),
           ),
           const SizedBox(width: 10),
-          // 弹跳圆点 + 文字
-          _buildDot(0.0),
-          const SizedBox(width: 3),
-          _buildDot(0.2),
-          const SizedBox(width: 3),
-          _buildDot(0.4),
-          const SizedBox(width: 8),
-          Text(
-            '${widget.characterName} 正在输入',
-            style: TextStyle(
-              fontFamily: AuraFonts.inter,
-              fontSize: 10,
-              letterSpacing: 1.5,
-              fontWeight: FontWeight.w600,
-              color: AuraColors.onSurfaceVariant,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // "打字中"气泡：高度与 VoiceBubble 一致（40），切换时气泡尺寸不突变
+              Container(
+                height: 40,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AuraColors.surfaceContainerLowest,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(4),
+                    topRight: Radius.circular(12),
+                    bottomLeft: Radius.circular(12),
+                    bottomRight: Radius.circular(12),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AuraColors.onSurface.withValues(alpha: 0.06),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildDot(0.0),
+                    const SizedBox(width: 3),
+                    _buildDot(0.2),
+                    const SizedBox(width: 3),
+                    _buildDot(0.4),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4),
+              // 透明占位，撑出跟 _Timestamp 相同的高度，切换到真实消息时整体高度不变
+              Text(
+                '00:00',
+                style: TextStyle(
+                  fontFamily: AuraFonts.inter,
+                  fontSize: 10,
+                  color: Colors.transparent,
+                ),
+              ),
+            ],
           ),
         ],
       ),

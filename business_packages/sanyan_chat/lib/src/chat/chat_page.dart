@@ -201,9 +201,7 @@ class _ChatPageState extends State<ChatPage> {
                       itemCount: itemCount,
                       itemBuilder: (context, index) {
                         if (showTyping && index == c.messages.length) {
-                          return TypingIndicator(
-                            characterName: conversation.characterName ?? '',
-                          );
+                          return const TypingIndicator();
                         }
                         return MessageBubble(message: c.messages[index]);
                       },
