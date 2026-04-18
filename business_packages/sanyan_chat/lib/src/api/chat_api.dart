@@ -13,31 +13,32 @@ abstract class ChatApi {
   static final _client = ApiClient();
 
   // Character
-  static Future<ApiResponse<List<Character>>> listCharacters() =>
-      _client.send(
-        ListCharactersReq(),
-        fromData: (d) => (d as List).map((e) => Character.fromJson(e)).toList(),
-      );
+  static Future<ApiResponse<List<Character>>> listCharacters() => _client.send(
+    ListCharactersReq(),
+    fromData: (d) => (d as List).map((e) => Character.fromJson(e)).toList(),
+  );
 
-  static Future<ApiResponse<Character>> getCharacter(int id) =>
-      _client.send(GetCharacterReq(id: id), fromData: (d) => Character.fromJson(d));
+  static Future<ApiResponse<Character>> getCharacter(int id) => _client.send(
+    GetCharacterReq(id: id),
+    fromData: (d) => Character.fromJson(d),
+  );
 
   // Conversation
   static Future<ApiResponse<List<Conversation>>> listConversations() =>
       _client.send(
         ListConversationsReq(),
-        fromData: (d) => (d as List).map((e) => Conversation.fromJson(e)).toList(),
+        fromData: (d) =>
+            (d as List).map((e) => Conversation.fromJson(e)).toList(),
       );
 
   static Future<ApiResponse<List<Message>>> listMessages(
     int convId, {
     int? beforeId,
     int limit = 20,
-  }) =>
-      _client.send(
-        ListMessagesReq(conversationId: convId, beforeId: beforeId, limit: limit),
-        fromData: (d) => (d as List).map((e) => Message.fromJson(e)).toList(),
-      );
+  }) => _client.send(
+    ListMessagesReq(conversationId: convId, beforeId: beforeId, limit: limit),
+    fromData: (d) => (d as List).map((e) => Message.fromJson(e)).toList(),
+  );
 
   static Future<ApiResponse> markRead(int convId) =>
       _client.send(MarkReadReq(conversationId: convId));
@@ -52,7 +53,8 @@ abstract class ChatApi {
         // 从本地文件路径提取真实后缀传给服务端（服务端根据后缀决定 COS key 和 content-type）
         'file': await MultipartFile.fromFile(
           localFilePath,
-          filename: 'voice${localFilePath.substring(localFilePath.lastIndexOf('.'))}',
+          filename:
+              'voice${localFilePath.substring(localFilePath.lastIndexOf('.'))}',
         ),
         'type': ContentType.voice,
         'duration': duration,
@@ -78,8 +80,9 @@ class VoiceUploadResult {
 
   VoiceUploadResult({required this.url, required this.duration});
 
-  factory VoiceUploadResult.fromJson(Map<String, dynamic> json) => VoiceUploadResult(
-    url: json['url'] ?? '',
-    duration: json['duration'] ?? 0,
-  );
+  factory VoiceUploadResult.fromJson(Map<String, dynamic> json) =>
+      VoiceUploadResult(
+        url: json['url'] ?? '',
+        duration: json['duration'] ?? 0,
+      );
 }

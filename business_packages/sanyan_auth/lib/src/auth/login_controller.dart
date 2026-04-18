@@ -5,8 +5,8 @@ import 'package:sanyan_routes/sanyan_routes.dart';
 import 'package:sanyan_user/sanyan_user.dart';
 
 class LoginController extends GetxController {
-  final phoneController = TextEditingController();
-  final passwordController = TextEditingController();
+  final phoneController = TextEditingController(text: '13900001111');
+  final passwordController = TextEditingController(text: '123456');
   final isLoading = false.obs;
   final obscurePassword = true.obs;
 
