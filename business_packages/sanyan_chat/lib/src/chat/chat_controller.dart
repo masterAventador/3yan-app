@@ -2,16 +2,25 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sanyan_network/sanyan_network.dart';
+import 'package:sanyan_user/sanyan_user.dart';
 import 'package:uuid/uuid.dart';
 import '../api/chat_api.dart';
 import '../home/conversation_list_controller.dart';
 import '../models/conversation.dart';
 import '../models/message.dart';
 import '../models/message_status.dart';
+import 'voice_recorder.dart';
+import 'widget/chat_input_mode.dart';
 
 class ChatController extends GetxController {
   final Conversation conversation;
-  ChatController(this.conversation);
+  final IVoiceRecorder recorder;
+  late final Rx<ChatInputMode> inputMode;
+
+  ChatController(this.conversation, {IVoiceRecorder? recorder})
+      : recorder = recorder ?? VoiceRecorder() {
+    inputMode = ChatInputMode.fromStorage(LocalStorage.lastInputMode).obs;
+  }
 
   final messages = <Message>[].obs;
   final isLoading = true.obs;
@@ -73,6 +82,13 @@ class ChatController extends GetxController {
           break;
       }
     });
+  }
+
+  void toggleInputMode() {
+    inputMode.value = inputMode.value == ChatInputMode.keyboard
+        ? ChatInputMode.voice
+        : ChatInputMode.keyboard;
+    LocalStorage.lastInputMode = inputMode.value.storageValue;
   }
 
   void sendMessage() {
@@ -196,6 +212,7 @@ class ChatController extends GetxController {
     _wsSubscription?.cancel();
     inputController.dispose();
     scrollController.dispose();
+    recorder.dispose();
     // 通知首页：离开聊天页，刷新列表
     if (Get.isRegistered<ConversationListController>()) {
       Get.find<ConversationListController>().leaveChat();
