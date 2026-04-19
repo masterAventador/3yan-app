@@ -255,7 +255,8 @@ class ChatController extends GetxController {
         duration: uploadResp.data!.duration,
         clientMsgId: msg.clientMsgId,
       );
-    } catch (_) {
+    } catch (e, stack) {
+      debugPrint('[ChatController] _uploadAndSendVoice failed: $e\n$stack');
       _markFailed(msg);
     }
   }
