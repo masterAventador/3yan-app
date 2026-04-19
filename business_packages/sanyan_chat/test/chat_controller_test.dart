@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:mocktail/mocktail.dart';
@@ -127,6 +128,99 @@ void main() {
       expect(c.inputMode.value, isNot(before));
       c.toggleInputMode();
       expect(c.inputMode.value, before);
+    });
+  });
+
+  group('ChatController.recording', () {
+    late _FakeWsClient ws;
+    late _MockRecorder recorder;
+    late ChatController c;
+
+    setUpAll(() async {
+      // get_storage 底层依赖 path_provider，测试环境下需要 mock 其 platform channel。
+      final tmp = await Directory.systemTemp.createTemp('gs_test_');
+      const channel = MethodChannel('plugins.flutter.io/path_provider');
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async => tmp.path);
+      await LocalStorage.init();
+    });
+
+    setUp(() {
+      ws = _FakeWsClient();
+      recorder = _MockRecorder();
+      Get.put<WsClient>(ws);
+      c = ChatController(_fixtureConv(), recorder: recorder);
+    });
+
+    tearDown(Get.reset);
+
+    test('onRecordStart: no permission → requests, does NOT start', () async {
+      when(() => recorder.isPermissionGranted()).thenAnswer((_) async => false);
+      when(() => recorder.requestPermission()).thenAnswer((_) async => true);
+
+      await c.onRecordStart(const Offset(0, 0));
+
+      expect(c.isRecording.value, false);
+      verifyNever(() =>
+          recorder.start(onMaxDurationReached: any(named: 'onMaxDurationReached')));
+    });
+
+    test('onRecordStart: permission granted → starts, sets isRecording=true',
+        () async {
+      when(() => recorder.isPermissionGranted()).thenAnswer((_) async => true);
+      when(() => recorder.start(
+            onMaxDurationReached: any(named: 'onMaxDurationReached'),
+          )).thenAnswer((_) async => true);
+
+      await c.onRecordStart(const Offset(0, 100));
+
+      expect(c.isRecording.value, true);
+      expect(c.isCancelling.value, false);
+    });
+
+    test('onRecordMove: dy > threshold (80) flips isCancelling to true',
+        () async {
+      when(() => recorder.isPermissionGranted()).thenAnswer((_) async => true);
+      when(() => recorder.start(
+            onMaxDurationReached: any(named: 'onMaxDurationReached'),
+          )).thenAnswer((_) async => true);
+      await c.onRecordStart(const Offset(100, 200));
+
+      c.onRecordMove(const Offset(100, 100)); // dy = 200 - 100 = 100 > 80
+
+      expect(c.isCancelling.value, true);
+    });
+
+    test('onRecordEnd: cancelling=true → recorder.cancel(), does not send voice',
+        () async {
+      when(() => recorder.isPermissionGranted()).thenAnswer((_) async => true);
+      when(() => recorder.start(
+            onMaxDurationReached: any(named: 'onMaxDurationReached'),
+          )).thenAnswer((_) async => true);
+      when(() => recorder.cancel()).thenAnswer((_) async {});
+      await c.onRecordStart(const Offset(100, 300));
+      c.onRecordMove(const Offset(100, 200)); // isCancelling → true
+
+      await c.onRecordEnd();
+
+      expect(c.isRecording.value, false);
+      verify(() => recorder.cancel()).called(1);
+      verifyNever(() => recorder.stop());
+    });
+
+    test('onRecordEnd: cancelling=false → recorder.stop()', () async {
+      when(() => recorder.isPermissionGranted()).thenAnswer((_) async => true);
+      when(() => recorder.start(
+            onMaxDurationReached: any(named: 'onMaxDurationReached'),
+          )).thenAnswer((_) async => true);
+      when(() => recorder.stop())
+          .thenAnswer((_) async => RecordingResult('/tmp/a.m4a', 3));
+      await c.onRecordStart(const Offset(0, 0));
+
+      await c.onRecordEnd();
+
+      expect(c.isRecording.value, false);
+      verify(() => recorder.stop()).called(1);
     });
   });
 }

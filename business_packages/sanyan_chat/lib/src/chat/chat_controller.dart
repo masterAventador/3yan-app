@@ -29,6 +29,16 @@ class ChatController extends GetxController {
   final scrollController = ScrollController();
   StreamSubscription? _wsSubscription;
 
+  final isRecording = false.obs;
+  final isCancelling = false.obs;
+  Offset? _recordStartPosition;
+
+  /// 滑动取消阈值：手指上滑超过此像素数视为取消录音。
+  static const double _cancelSwipeThreshold = 80.0;
+
+  /// 回调：需要弹提示给用户（UI 层通过 registerToastHandler 注入）。
+  void Function(String message)? _toastHandler;
+
   static const _uuid = Uuid();
 
   @override
@@ -89,6 +99,80 @@ class ChatController extends GetxController {
         ? ChatInputMode.voice
         : ChatInputMode.keyboard;
     LocalStorage.lastInputMode = inputMode.value.storageValue;
+  }
+
+  void registerToastHandler(void Function(String) handler) {
+    _toastHandler = handler;
+  }
+
+  void _showToast(String msg) => _toastHandler?.call(msg);
+
+  /// 进聊天页后台跑一次 start+cancel，触发 iOS AAC codec 首次初始化。
+  /// 之后 codec 被缓存，真正按住说话的启动时间能从 ~1s 降到百毫秒。
+  /// 只在已有权限时预热，避免静默触发系统权限弹窗。
+  Future<void> warmupRecorder() async {
+    if (!await recorder.isPermissionGranted()) return;
+    final started = await recorder.start();
+    if (started) {
+      await recorder.cancel();
+    }
+  }
+
+  Future<void> onRecordStart(Offset globalPosition) async {
+    // 权限已授予 → 直接开始录音。
+    // 权限未授予 → 弹系统弹窗询问，弹窗会打断长按手势，此时不应该继续开始录音
+    //             （否则用户手指早已离开按钮，录音会卡死），而是提示用户再次按住。
+    if (!await recorder.isPermissionGranted()) {
+      final granted = await recorder.requestPermission();
+      _showToast(granted ? '麦克风权限已获取，请再次按住说话' : '需要麦克风权限才能发送语音');
+      return;
+    }
+    final started = await recorder.start(onMaxDurationReached: () {
+      if (isRecording.value) onRecordEnd();
+    });
+    if (!started) {
+      _showToast('录音启动失败');
+      return;
+    }
+    isRecording.value = true;
+    isCancelling.value = false;
+    _recordStartPosition = globalPosition;
+  }
+
+  void onRecordMove(Offset globalPosition) {
+    if (!isRecording.value || _recordStartPosition == null) return;
+    final dy = _recordStartPosition!.dy - globalPosition.dy;
+    final cancelling = dy > _cancelSwipeThreshold;
+    if (cancelling != isCancelling.value) {
+      isCancelling.value = cancelling;
+    }
+  }
+
+  Future<void> onRecordEnd() async {
+    if (!isRecording.value) return;
+    final cancelling = isCancelling.value;
+    isRecording.value = false;
+    isCancelling.value = false;
+    _recordStartPosition = null;
+
+    if (cancelling) {
+      await recorder.cancel();
+      return;
+    }
+    final result = await recorder.stop();
+    if (result == null) {
+      _showToast('说话时间太短');
+      return;
+    }
+    sendVoiceMessage(result.filePath, result.durationSeconds);
+  }
+
+  Future<void> onRecordCancel() async {
+    if (!isRecording.value) return;
+    isRecording.value = false;
+    isCancelling.value = false;
+    _recordStartPosition = null;
+    await recorder.cancel();
   }
 
   void sendMessage() {
