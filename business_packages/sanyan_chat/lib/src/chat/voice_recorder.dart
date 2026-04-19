@@ -11,7 +11,17 @@ class RecordingResult {
   RecordingResult(this.filePath, this.durationSeconds);
 }
 
-class VoiceRecorder {
+abstract class IVoiceRecorder {
+  Future<bool> isPermissionGranted();
+  Future<bool> requestPermission();
+  Future<bool> start({void Function()? onMaxDurationReached});
+  Future<RecordingResult?> stop();
+  Future<void> cancel();
+  int get currentDurationSeconds;
+  void dispose();
+}
+
+class VoiceRecorder implements IVoiceRecorder {
   static const _uuid = Uuid();
   static const maxDurationSeconds = 60;
   static const minDurationSeconds = 1;
