@@ -41,7 +41,10 @@ class SanyanApp extends StatelessWidget {
         GetPage(name: AppRoutes.login, page: () => const LoginPage()),
         GetPage(name: AppRoutes.register, page: () => const RegisterPage()),
         GetPage(name: AppRoutes.home, page: () => const HomePage()),
-        GetPage(name: AppRoutes.chat, page: () => ChatPage()),
+        GetPage(
+          name: AppRoutes.chat,
+          page: () => ChatPage(conversation: Get.arguments as Conversation),
+        ),
       ],
     );
   }

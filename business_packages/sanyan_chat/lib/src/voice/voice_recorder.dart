@@ -11,7 +11,17 @@ class RecordingResult {
   RecordingResult(this.filePath, this.durationSeconds);
 }
 
-class VoiceRecorder {
+abstract class IVoiceRecorder {
+  Future<bool> isPermissionGranted();
+  Future<bool> requestPermission();
+  Future<bool> start({void Function()? onMaxDurationReached});
+  Future<RecordingResult?> stop();
+  Future<void> cancel();
+  int get currentDurationSeconds;
+  void dispose();
+}
+
+class VoiceRecorder implements IVoiceRecorder {
   static const _uuid = Uuid();
   static const maxDurationSeconds = 60;
   static const minDurationSeconds = 1;
@@ -24,11 +34,13 @@ class VoiceRecorder {
   void Function()? _onMaxDurationReached;
 
   /// Check current microphone permission status WITHOUT triggering system dialog.
+  @override
   Future<bool> isPermissionGranted() async {
     return Permission.microphone.isGranted;
   }
 
   /// Request microphone permission (may trigger iOS system dialog).
+  @override
   Future<bool> requestPermission() async {
     final status = await Permission.microphone.request();
     return status.isGranted;
@@ -37,6 +49,7 @@ class VoiceRecorder {
   /// Start recording. Caller must ensure permission is already granted
   /// (first-time grant should NOT immediately start recording — the long-press
   /// gesture is lost while the system permission dialog is showing).
+  @override
   Future<bool> start({void Function()? onMaxDurationReached}) async {
     try {
       final uuid = _uuid.v4();
@@ -70,6 +83,7 @@ class VoiceRecorder {
   }
 
   /// Stop and return result, or null if too short (< 1s)
+  @override
   Future<RecordingResult?> stop() async {
     _maxDurationTimer?.cancel();
     try {
@@ -94,6 +108,7 @@ class VoiceRecorder {
   }
 
   /// Cancel and delete local file
+  @override
   Future<void> cancel() async {
     _maxDurationTimer?.cancel();
     try {
@@ -106,11 +121,13 @@ class VoiceRecorder {
     _currentFilePath = null;
   }
 
+  @override
   int get currentDurationSeconds {
     if (_startTime == null) return 0;
     return DateTime.now().difference(_startTime!).inSeconds;
   }
 
+  @override
   void dispose() {
     _maxDurationTimer?.cancel();
     _recorder.dispose();

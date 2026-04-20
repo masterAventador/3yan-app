@@ -4,7 +4,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:get/get.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import 'package:sanyan_network/sanyan_network.dart';
-import '../../models/message.dart';
+import '../../api/models/message.dart';
 import '../chat_controller.dart';
 
 /// 单例协调器：同时只允许一个 VoiceBubble 在播放，点新气泡先停当前的。

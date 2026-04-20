@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import 'api_response.dart';
+import 'app_constants.dart';
 import 'base_req.dart';
 
 /// Provides the token for API requests.

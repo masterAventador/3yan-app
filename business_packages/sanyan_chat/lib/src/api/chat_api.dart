@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:sanyan_network/sanyan_network.dart';
-import '../models/character.dart';
-import '../models/conversation.dart';
-import '../models/message.dart';
+import 'models/character.dart';
+import 'models/conversation.dart';
+import 'models/message.dart';
 import 'req/list_characters_req.dart';
 import 'req/get_character_req.dart';
 import 'req/list_conversations_req.dart';

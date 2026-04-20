@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:sanyan_common_ui/sanyan_common_ui.dart';
+import 'app_constants.dart';
 import 'content_type.dart' as ct;
 import 'ws_event_type.dart';
 

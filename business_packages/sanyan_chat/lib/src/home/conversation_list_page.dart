@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import 'package:sanyan_routes/sanyan_routes.dart';
-import '../models/conversation.dart';
+import '../api/models/conversation.dart';
 import 'conversation_list_controller.dart';
 
 class ConversationListPage extends StatelessWidget {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import 'package:sanyan_network/sanyan_network.dart';
-import '../../models/message.dart';
+import '../../api/models/message.dart';
 import 'voice_bubble.dart';
 import 'video_bubble.dart';
 
