@@ -12,8 +12,6 @@ dependencies:
   web_socket_channel: ^3.0.0
   get: ^4.6.6
   uuid: ^4.3.3
-  sanyan_common_ui:
-    path: ../sanyan_common_ui
 
 dev_dependencies:
   flutter_test:

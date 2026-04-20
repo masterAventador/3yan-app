@@ -1,4 +1,3 @@
-export 'src/constants.dart';
 export 'src/aura_colors.dart';
 export 'src/aura_fonts.dart';
 export 'src/aura_spacing.dart';
