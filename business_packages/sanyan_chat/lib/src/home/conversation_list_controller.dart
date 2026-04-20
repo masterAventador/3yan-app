@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:sanyan_network/sanyan_network.dart';
 import '../api/chat_api.dart';
-import '../models/conversation.dart';
+import '../api/models/conversation.dart';
 
 
 class ConversationListController extends GetxController {

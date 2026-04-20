@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
-import '../models/conversation.dart';
+import '../api/models/conversation.dart';
 import 'chat_controller.dart';
 import 'widget/chat_input_bar.dart';
 import 'widget/message_bubble.dart';

@@ -6,10 +6,10 @@ import 'package:sanyan_user/sanyan_user.dart';
 import 'package:uuid/uuid.dart';
 import '../api/chat_api.dart';
 import '../home/conversation_list_controller.dart';
-import '../models/conversation.dart';
-import '../models/message.dart';
-import '../models/message_status.dart';
-import 'voice_recorder.dart';
+import '../api/models/conversation.dart';
+import '../api/models/message.dart';
+import '../api/models/message_status.dart';
+import '../voice/voice_recorder.dart';
 import 'widget/chat_input_mode.dart';
 
 class ChatController extends GetxController {
