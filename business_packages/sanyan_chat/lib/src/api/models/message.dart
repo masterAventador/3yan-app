@@ -12,6 +12,9 @@ class Message {
   final String createdAt;
   final String? clientMsgId;
   final int? duration;
+  // 降级原因：asr_failed（ASR 识别失败）/ tts_failed（TTS 合成失败）/ null（正常）。
+  // 服务端开启了 Jackson non_null 过滤，正常消息该字段不会出现在响应里。
+  final String? fallbackReason;
   MessageStatus? status;
   String? localFilePath;
 
@@ -26,6 +29,7 @@ class Message {
     required this.createdAt,
     this.clientMsgId,
     this.duration,
+    this.fallbackReason,
     this.status,
     this.localFilePath,
   });
@@ -49,6 +53,7 @@ class Message {
     source: json['source'] ?? 'reply',
     createdAt: json['createdAt'] ?? '',
     duration: json['duration'],
+    fallbackReason: json['fallbackReason'],
   );
 
   Map<String, dynamic> toJson() => {
@@ -61,5 +66,6 @@ class Message {
     'source': source,
     'createdAt': createdAt,
     'duration': duration,
+    'fallbackReason': fallbackReason,
   };
 }
