@@ -51,6 +51,16 @@ class WsClient extends GetxService {
   final _eventController = StreamController<WsEvent>.broadcast();
   Stream<WsEvent> get eventStream => _eventController.stream;
 
+  final _disconnectedController = StreamController<void>.broadcast();
+
+  /// Fires whenever the underlying WebSocket transitions from connected to
+  /// disconnected（onDone / onError / sink close 失败 / 主动 disconnect()）。
+  /// 订阅方（例如 MessageSender）用这个把 pending 消息标 failed。
+  Stream<void> get onDisconnected => _disconnectedController.stream;
+
+  @visibleForTesting
+  void notifyDisconnectedForTest() => _disconnectedController.add(null);
+
   final isConnected = false.obs;
 
   /// Set this to provide the auth token for WebSocket connections.
@@ -229,6 +239,7 @@ class WsClient extends GetxService {
 
   void _onDisconnected() {
     if (!_isConnected && _channel == null) return; // 已经处理过了
+    _disconnectedController.add(null);
     _cleanup();
     _scheduleReconnect();
   }
@@ -262,6 +273,7 @@ class WsClient extends GetxService {
   void onClose() {
     disconnect();
     _eventController.close();
+    _disconnectedController.close();
     super.onClose();
   }
 }
