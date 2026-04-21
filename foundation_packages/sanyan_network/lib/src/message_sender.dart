@@ -36,6 +36,7 @@ class MessageSender extends GetxService {
   final Map<String, PendingEntry> _pending = {};
   Timer? _scanTimer;
   StreamSubscription<WsEvent>? _wsEventSub;
+  StreamSubscription<void>? _wsDisconnectSub;
 
   final StreamController<PendingEntry> _statusChangesController =
       StreamController<PendingEntry>.broadcast();
@@ -52,6 +53,7 @@ class MessageSender extends GetxService {
         _timeout = timeout,
         _scanInterval = scanInterval {
     _wsEventSub = _wsClient.eventStream.listen(_onWsEvent);
+    _wsDisconnectSub = _wsClient.onDisconnected.listen(_onDisconnected);
   }
 
   /// 取指定会话的所有 pending 条目（包含 sending 和 failed 状态）。
@@ -104,6 +106,18 @@ class MessageSender extends GetxService {
     _stopScanTimerIfEmpty();
   }
 
+  void _onDisconnected(void _) {
+    if (_pending.isEmpty) return;
+    final entries = _pending.values.toList();
+    _pending.clear();
+    for (final entry in entries) {
+      entry.messageJson['status'] = MessageWireStatus.failed;
+      _statusChangesController.add(entry);
+    }
+    _scanTimer?.cancel();
+    _scanTimer = null;
+  }
+
   void _ensureScanTimer() {
     _scanTimer ??= Timer.periodic(_scanInterval, (_) => _scan());
   }
@@ -139,6 +153,7 @@ class MessageSender extends GetxService {
   void onClose() {
     _scanTimer?.cancel();
     _wsEventSub?.cancel();
+    _wsDisconnectSub?.cancel();
     _statusChangesController.close();
     super.onClose();
   }

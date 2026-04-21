@@ -190,4 +190,67 @@ void main() {
 
     ws.disposeForTest();
   });
+
+  test('disconnect: all pending messages marked failed, broadcast, map cleared', () async {
+    final ws = FakeWsClient();
+    final sender = MessageSender(
+      wsClient: ws,
+      timeout: const Duration(seconds: 30),
+      scanInterval: const Duration(seconds: 1),
+    );
+    final changes = <PendingEntry>[];
+    sender.statusChanges.listen(changes.add);
+
+    sender.sendText(
+      conversationId: 1,
+      clientMsgId: 'a',
+      messageJson: {
+        'content': 'x',
+        'clientMsgId': 'a',
+        'conversationId': 1,
+        'status': MessageWireStatus.sending,
+      },
+    );
+    sender.sendText(
+      conversationId: 2, // 另一个会话
+      clientMsgId: 'b',
+      messageJson: {
+        'content': 'y',
+        'clientMsgId': 'b',
+        'conversationId': 2,
+        'status': MessageWireStatus.sending,
+      },
+    );
+
+    expect(sender.getPending(1), hasLength(1));
+    expect(sender.getPending(2), hasLength(1));
+    expect(sender.isScanActive, isTrue);
+
+    ws.simulateDisconnect();
+    await Future.delayed(const Duration(milliseconds: 20));
+
+    expect(sender.getPending(1), isEmpty);
+    expect(sender.getPending(2), isEmpty);
+    expect(sender.isScanActive, isFalse); // Timer 也停了
+    expect(changes, hasLength(2));
+    for (final c in changes) {
+      expect(c.messageJson['status'], MessageWireStatus.failed);
+    }
+
+    ws.disposeForTest();
+  });
+
+  test('disconnect with empty pending: no broadcast, no exception', () async {
+    final ws = FakeWsClient();
+    final sender = MessageSender(wsClient: ws);
+    final changes = <PendingEntry>[];
+    sender.statusChanges.listen(changes.add);
+
+    ws.simulateDisconnect();
+    await Future.delayed(const Duration(milliseconds: 20));
+
+    expect(changes, isEmpty); // 没有 pending 就不该广播
+
+    ws.disposeForTest();
+  });
 }
