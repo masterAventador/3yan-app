@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:get/get.dart';
 import 'message_wire_status.dart';
 import 'pending_entry.dart';
@@ -61,6 +62,9 @@ class MessageSender extends GetxService {
         .toList();
   }
 
+  @visibleForTesting
+  bool get isScanActive => _scanTimer != null;
+
   /// 发送文本消息：把消息加入 pending 队列 + 调 WsClient.sendMessage。
   /// ACK / 超时 / 断线 后续由 eventStream 订阅 + 周期扫描处理。
   void sendText({
@@ -112,6 +116,8 @@ class MessageSender extends GetxService {
   }
 
   void _scan() {
+    // 两阶段扫描：先收集 expired ids 再 remove + 广播，
+    // 避免迭代 _pending.values 时修改 _pending 触发 ConcurrentModificationError。
     final now = DateTime.now().millisecondsSinceEpoch;
     final expiredIds = <String>[];
     for (final entry in _pending.values) {

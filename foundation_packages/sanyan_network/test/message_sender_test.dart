@@ -151,14 +151,17 @@ void main() {
     ws.disposeForTest();
   });
 
-  test('scan timer stops when pending is empty', () async {
+  test('scan timer starts on sendText and stops when pending is emptied', () async {
     final ws = FakeWsClient();
     final sender = MessageSender(
       wsClient: ws,
-      timeout: const Duration(milliseconds: 50),
+      timeout: const Duration(milliseconds: 500),
       scanInterval: const Duration(milliseconds: 20),
     );
+    final changes = <PendingEntry>[];
+    sender.statusChanges.listen(changes.add);
 
+    // 发一条 → Timer 应启动
     sender.sendText(
       conversationId: 1,
       clientMsgId: 'cid-lazy',
@@ -169,16 +172,21 @@ void main() {
         'status': MessageWireStatus.sending,
       },
     );
+    expect(sender.isScanActive, isTrue);
 
-    // ACK 把它移除
+    // ACK 移除 → Timer 应停
     ws.simulateAck('cid-lazy');
     await Future.delayed(const Duration(milliseconds: 30));
-
     expect(sender.getPending(1), isEmpty);
-    // Timer 应当已停（没有新消息时不空转）
-    // 这里不直接 assert _scanTimer == null（私有字段），靠"没有异常"来代理验证
-    // 关键是：再等 scanInterval 两轮也不会有任何异常 / 错误广播
-    await Future.delayed(const Duration(milliseconds: 60));
+    expect(sender.isScanActive, isFalse);
+
+    // 只应广播 1 次（sent），不应该因为停掉的 timer 继续扫出 failed
+    expect(changes, hasLength(1));
+    expect(changes.first.messageJson['status'], MessageWireStatus.sent);
+
+    // 再等更长时间，确保 timer 真停了（不会异步触发额外广播）
+    await Future.delayed(const Duration(milliseconds: 80));
+    expect(changes, hasLength(1));
 
     ws.disposeForTest();
   });
