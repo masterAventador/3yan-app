@@ -21,6 +21,7 @@ class _FakeWsClient extends WsClient {
 // 只 override sendText 记录调用，其他 Sender 行为保持父类实现即可。
 class _FakeMessageSender extends MessageSender {
   final sentTexts = <Map<String, dynamic>>[];
+  final retriedEntries = <PendingEntry>[];
 
   _FakeMessageSender(WsClient wsClient) : super(wsClient: wsClient);
 
@@ -35,6 +36,12 @@ class _FakeMessageSender extends MessageSender {
       'clientMsgId': clientMsgId,
       'messageJson': messageJson,
     });
+  }
+
+  @override
+  void retry(PendingEntry entry) {
+    retriedEntries.add(entry);
+    entry.messageJson['status'] = MessageWireStatus.sending;
   }
 }
 
@@ -295,6 +302,97 @@ void main() {
 
       expect(sender.sentTexts, isEmpty);
       expect(c.messages, isEmpty);
+    });
+  });
+
+  group('ChatController.retryMessage', () {
+    setUpAll(() async {
+      final tmp = await Directory.systemTemp.createTemp('gs_test_');
+      const channel = MethodChannel('plugins.flutter.io/path_provider');
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async => tmp.path);
+      await LocalStorage.init();
+    });
+
+    tearDown(Get.reset);
+
+    test('failed text message delegates to Sender.retry + marks sending', () {
+      final ws = _FakeWsClient();
+      Get.put<WsClient>(ws);
+      final sender = _FakeMessageSender(ws);
+      Get.put<MessageSender>(sender);
+      final c = ChatController(_fixtureConv(), recorder: _MockRecorder());
+
+      final failedMsg = Message(
+        id: 0,
+        conversationId: 1,
+        senderType: SenderType.user,
+        contentType: ContentType.text,
+        content: 'hello',
+        source: 'reply',
+        createdAt: '2026-04-21',
+        clientMsgId: 'retry-a',
+        status: MessageStatus.failed,
+      );
+      c.messages.add(failedMsg);
+
+      c.retryMessage(failedMsg);
+
+      expect(sender.retriedEntries, hasLength(1));
+      expect(sender.retriedEntries.first.clientMsgId, 'retry-a');
+      expect(sender.retriedEntries.first.conversationId, 1);
+      expect(failedMsg.status, MessageStatus.sending);
+    });
+
+    test('non-failed message no-op', () {
+      final ws = _FakeWsClient();
+      Get.put<WsClient>(ws);
+      final sender = _FakeMessageSender(ws);
+      Get.put<MessageSender>(sender);
+      final c = ChatController(_fixtureConv(), recorder: _MockRecorder());
+
+      final sendingMsg = Message(
+        id: 0,
+        conversationId: 1,
+        senderType: SenderType.user,
+        contentType: ContentType.text,
+        content: 'hi',
+        source: 'reply',
+        createdAt: '2026-04-21',
+        clientMsgId: 'no-op',
+        status: MessageStatus.sending,
+      );
+      c.messages.add(sendingMsg);
+
+      c.retryMessage(sendingMsg);
+
+      expect(sender.retriedEntries, isEmpty);
+      expect(sendingMsg.status, MessageStatus.sending);
+    });
+
+    test('message without clientMsgId no-op', () {
+      final ws = _FakeWsClient();
+      Get.put<WsClient>(ws);
+      final sender = _FakeMessageSender(ws);
+      Get.put<MessageSender>(sender);
+      final c = ChatController(_fixtureConv(), recorder: _MockRecorder());
+
+      final bad = Message(
+        id: 0,
+        conversationId: 1,
+        senderType: SenderType.user,
+        contentType: ContentType.text,
+        content: 'hi',
+        source: 'reply',
+        createdAt: '2026-04-21',
+        clientMsgId: null,
+        status: MessageStatus.failed,
+      );
+      c.messages.add(bad);
+
+      c.retryMessage(bad);
+
+      expect(sender.retriedEntries, isEmpty);
     });
   });
 

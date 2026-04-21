@@ -269,17 +269,27 @@ class ChatController extends GetxController {
     _uploadAndSendVoice(msg);
   }
 
-  /// 重试一条失败的消息（当前为空实现，T19 填充为调 MessageSender.retry）。
+  /// 重试一条失败的消息。把 Message 转回 PendingEntry 交给 MessageSender.retry，
+  /// Sender 会按 contentType 分派到 WsClient 对应 send 方法，重置 sendTimeMs，
+  /// 广播 statusChanges → ChatController 收到事件把 msg.status 切回 sending。
+  ///
+  /// 当前实现里这里先把 msg.status 置 sending 并 refresh UI——为了即时反馈，
+  /// 不等 statusChanges 事件回来。
   void retryMessage(Message msg) {
-    // TODO(T19): 接入 MessageSender.retry
-  }
+    if (msg.status != MessageStatus.failed) return;
+    final clientMsgId = msg.clientMsgId;
+    if (clientMsgId == null) return;
 
-  /// Retry failed voice message
-  Future<void> retryVoiceMessage(Message msg) async {
-    if (msg.localFilePath == null) return;
     msg.status = MessageStatus.sending;
     messages.refresh();
-    await _uploadAndSendVoice(msg);
+
+    final entry = PendingEntry(
+      clientMsgId: clientMsgId,
+      conversationId: msg.conversationId,
+      sendTimeMs: DateTime.now().millisecondsSinceEpoch,
+      messageJson: msg.toJson(),
+    );
+    Get.find<MessageSender>().retry(entry);
   }
 
   Future<void> _uploadAndSendVoice(Message msg) async {
