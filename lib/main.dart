@@ -23,6 +23,15 @@ void main() async {
   ApiClient.tokenProvider = () => LocalStorage.token;
   WsClient.tokenProvider = () => LocalStorage.token;
 
+  // Register network services as permanent GetxService singletons.
+  // MessageSender 跨聊天页生命周期存活，必须在 route 启动前 initAsync 完成，
+  // 这样冷启的 pending 消息（之前 sending 被转成 failed）已经可见，
+  // ChatController onInit 合并 pending 时直接显示感叹号，避免 UI 闪烁。
+  final wsClient = Get.put<WsClient>(WsClient(), permanent: true);
+  final messageSender = MessageSender(wsClient: wsClient);
+  await messageSender.initAsync();
+  Get.put<MessageSender>(messageSender, permanent: true);
+
   runApp(const SanyanApp());
 }
 
