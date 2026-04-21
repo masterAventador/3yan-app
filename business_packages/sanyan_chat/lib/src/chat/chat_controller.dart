@@ -253,20 +253,16 @@ class ChatController extends GetxController {
         _markFailed(msg);
         return;
       }
-
-      // 上传成功后立刻回写 mediaUrl + 标记为 sent，移除发送中 loading：
-      // COS 已有文件说明上传链路完成，WebSocket 的 ACK 只是双重确认，
-      // 等 ACK 会让 loading 一直不消失（ACK 偶发丢失时）。
+      // HTTP 上传成功但还没发给对端——status 保持 sending，
+      // 交给 MessageSender 跟踪 ACK，偶发 ACK 丢失由 30s 超时兜住。
       msg.mediaUrl = uploadResp.data!.url;
-      msg.status = MessageStatus.sent;
       messages.refresh();
-
-      final wsClient = Get.find<WsClient>();
-      wsClient.sendVoiceMessage(
+      Get.find<MessageSender>().sendVoice(
         conversationId: conversation.id,
+        clientMsgId: msg.clientMsgId!,
         mediaUrl: uploadResp.data!.url,
         duration: uploadResp.data!.duration,
-        clientMsgId: msg.clientMsgId!,
+        messageJson: msg.toJson(),
       );
     } catch (e, stack) {
       debugPrint('[ChatController] _uploadAndSendVoice failed: $e\n$stack');
