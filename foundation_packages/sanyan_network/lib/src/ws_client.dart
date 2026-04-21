@@ -45,8 +45,14 @@ class WsClient extends GetxService {
   Timer? _reconnectTimer;
   bool _isConnected = false;
   int _reconnectAttempts = 0;
-  static const _maxReconnectAttempts = 20;
   static const _uuid = Uuid();
+
+  /// 指数退避重连延迟序列：1s, 2s, 5s, 10s, 30s（之后一直 30s）。
+  static Duration reconnectDelayForAttempt(int attempt) {
+    const sequence = [1, 2, 5, 10, 30];
+    final idx = attempt < sequence.length ? attempt : sequence.length - 1;
+    return Duration(seconds: sequence[idx]);
+  }
 
   final _eventController = StreamController<WsEvent>.broadcast();
   Stream<WsEvent> get eventStream => _eventController.stream;
@@ -201,7 +207,7 @@ class WsClient extends GetxService {
     buf.writeln('\n╔══════════════════════════════════════════════════════════════');
     buf.writeln('║ ❌ WS CONNECT FAILED');
     buf.writeln('║ Error: $error');
-    buf.writeln('║ 重连次数: $_reconnectAttempts / $_maxReconnectAttempts');
+    buf.writeln('║ 重连次数: $_reconnectAttempts');
     buf.writeln('╚══════════════════════════════════════════════════════════════');
     developer.log(buf.toString(), name: 'WS');
   }
@@ -260,17 +266,8 @@ class WsClient extends GetxService {
   }
 
   void _scheduleReconnect() {
-    if (_reconnectAttempts >= _maxReconnectAttempts) {
-      // 达到上限后重置计数，延迟 60 秒再试，永不放弃
-      _reconnectAttempts = 0;
-      _reconnectTimer?.cancel();
-      _reconnectTimer = Timer(const Duration(seconds: 60), () {
-        connect();
-      });
-      return;
-    }
     _reconnectTimer?.cancel();
-    final delay = Duration(seconds: 2 * (_reconnectAttempts + 1));
+    final delay = reconnectDelayForAttempt(_reconnectAttempts);
     _reconnectTimer = Timer(delay, () {
       _reconnectAttempts++;
       connect();
