@@ -6,6 +6,9 @@ import 'package:sanyan_network/sanyan_network.dart';
 
 import 'support/fake_ws_client.dart';
 
+/// Drain 所有 pending microtasks，确保 async broadcast 已 deliver。
+Future<void> _flushMicrotasks() => Future<void>.delayed(Duration.zero);
+
 void main() {
   setUp(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -392,10 +395,16 @@ void main() {
     changes.clear(); // 只观察 retry 后的广播
 
     final failedEntry = sender.getPending(1).first;
+    final oldSendTime = failedEntry.sendTimeMs;
+
     sender.retry(failedEntry);
+
+    await _flushMicrotasks();
 
     expect(sender.getPending(1), hasLength(1));
     expect(sender.getPending(1).first.messageJson['status'], MessageWireStatus.sending);
+    // sendTimeMs 被刷新（>= 原值；ms 精度可能相等，但不允许倒退）
+    expect(sender.getPending(1).first.sendTimeMs, greaterThanOrEqualTo(oldSendTime));
     expect(ws.sentTexts, hasLength(2)); // 第一次 + 重试
     expect(ws.sentTexts.last['clientMsgId'], 'retry-t');
     expect(changes, hasLength(1));
@@ -431,6 +440,8 @@ void main() {
     expect(sender.getPending(1).first.messageJson['status'], MessageWireStatus.failed);
 
     sender.retry(sender.getPending(1).first);
+
+    await _flushMicrotasks();
 
     expect(sender.getPending(1).first.messageJson['status'], MessageWireStatus.sending);
     expect(ws.sentVoices, hasLength(2));

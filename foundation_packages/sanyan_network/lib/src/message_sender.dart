@@ -43,10 +43,11 @@ class MessageSender extends GetxService {
   StreamSubscription<WsEvent>? _wsEventSub;
   StreamSubscription<void>? _wsDisconnectSub;
 
-  // sync: true → 订阅者能在同一 tick 内看到 retry / ack / timeout 等状态变化，
-  // 避免依赖 microtask 调度顺序（测试和 ChatController 监听都不需要异步 gap）。
+  // async broadcast（Dart 默认）：避免 listener 同步回调到 Sender API
+  // （比如 ChatController 在 statusChanges 里调 retry / removePending）
+  // 导致 _onDisconnected / _scan 的 for 循环 ConcurrentModificationError。
   final StreamController<PendingEntry> _statusChangesController =
-      StreamController<PendingEntry>.broadcast(sync: true);
+      StreamController<PendingEntry>.broadcast();
 
   /// 状态变化事件流：Sender 更新了某条消息的 status（sent / failed）后广播。
   /// ChatController 订阅并刷新 messages 列表。
@@ -74,6 +75,10 @@ class MessageSender extends GetxService {
   }
 
   void _loadFromDisk() {
+    // 冷启加载所有持久化条目到 _pending map。
+    // - sending 状态立即转 failed（timer/socket 已消亡，等不到 ACK）
+    // - failed 状态**原样保留**（用户进聊天页时仍能看到感叹号可重试）
+    // 和运行时语义一致：failed 条目只在 ACK / removePending / 冷启后的覆盖写入时才消失。
     final raw = _box?.read<List<dynamic>>(_storeKey);
     if (raw == null) return;
     for (final item in raw) {
