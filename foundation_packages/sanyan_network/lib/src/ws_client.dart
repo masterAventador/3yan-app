@@ -53,9 +53,17 @@ class WsClient extends GetxService {
 
   final _disconnectedController = StreamController<void>.broadcast();
 
-  /// Fires whenever the underlying WebSocket transitions from connected to
-  /// disconnected（onDone / onError / sink close 失败 / 主动 disconnect()）。
+  /// 被动断开事件流：当底层 WebSocket 从连接状态转为断开时 fire。
+  ///
+  /// 触发路径：
+  ///   - stream `onDone`（对端关闭）
+  ///   - stream `onError`（IO 错误）
+  ///   - `_send` 时 sink 已关（写失败）
+  ///   - `connect()` 内 `runZonedGuarded` 捕获异常
+  ///
   /// 订阅方（例如 MessageSender）用这个把 pending 消息标 failed。
+  /// 注意：主动调用 [disconnect] **不**触发此事件——主动断开时通常是
+  /// 应用退出流程，pending 消息的处理由 onClose 统一负责。
   Stream<void> get onDisconnected => _disconnectedController.stream;
 
   @visibleForTesting
@@ -239,9 +247,9 @@ class WsClient extends GetxService {
 
   void _onDisconnected() {
     if (!_isConnected && _channel == null) return; // 已经处理过了
-    _disconnectedController.add(null);
     _cleanup();
     _scheduleReconnect();
+    _disconnectedController.add(null);
   }
 
   void _startHeartbeat() {
