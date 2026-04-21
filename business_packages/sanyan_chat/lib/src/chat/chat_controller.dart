@@ -28,6 +28,7 @@ class ChatController extends GetxController {
   final inputController = TextEditingController();
   final scrollController = ScrollController();
   StreamSubscription? _wsSubscription;
+  StreamSubscription<PendingEntry>? _senderSub;
 
   final isRecording = false.obs;
   final isCancelling = false.obs;
@@ -46,6 +47,7 @@ class ChatController extends GetxController {
     super.onInit();
     _loadHistory();
     _listenWs();
+    _listenSender();
     ChatApi.markRead(conversation.id);
     // 通知首页：正在查看这个会话（延迟到 build 完成后执行，避免在 build 阶段触发 Obx 重建）
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -63,8 +65,24 @@ class ChatController extends GetxController {
         messages.value = resp.data!;
       }
     } finally {
+      _mergePendingFromSender();
       isLoading.value = false;
       _scrollToBottom();
+    }
+  }
+
+  /// 把 MessageSender 里当前会话的 pending 条目（sending / failed）
+  /// merge 到 messages 列表末尾——跨聊天页生命周期保持消息可见。
+  void _mergePendingFromSender() {
+    final pending = Get.find<MessageSender>().getPending(conversation.id);
+    for (final entry in pending) {
+      final msg = Message.fromJson(entry.messageJson);
+      // 历史接口返回的消息如果已经包含同 clientMsgId（不该发生，但防御），跳过
+      if (msg.clientMsgId != null &&
+          messages.any((m) => m.clientMsgId == msg.clientMsgId)) {
+        continue;
+      }
+      messages.add(msg);
     }
   }
 
@@ -87,11 +105,32 @@ class ChatController extends GetxController {
             ChatApi.markRead(conversation.id);
           }
           break;
-        case WsEventType.ack:
-          _onAck(event.clientMsgId);
-          break;
+        // ACK 由 MessageSender 处理，ChatController 通过 statusChanges 订阅
+        // 获得状态更新，不再自己处理 ack 事件。
       }
     });
+  }
+
+  void _listenSender() {
+    _senderSub =
+        Get.find<MessageSender>().statusChanges.listen(_onSenderStatusChange);
+  }
+
+  void _onSenderStatusChange(PendingEntry entry) {
+    if (entry.conversationId != conversation.id) return;
+    final idx = messages.indexWhere((m) => m.clientMsgId == entry.clientMsgId);
+    if (idx == -1) return; // 不在当前列表里（冷启后未 merge 等极端情况），忽略
+    final newStatus = _parseWireStatus(entry.messageJson['status'] as String?);
+    messages[idx].status = newStatus;
+    messages.refresh();
+  }
+
+  MessageStatus? _parseWireStatus(String? raw) {
+    if (raw == null) return null;
+    for (final s in MessageStatus.values) {
+      if (s.name == raw) return s;
+    }
+    return null;
   }
 
   void toggleInputMode() {
@@ -275,21 +314,6 @@ class ChatController extends GetxController {
     messages.refresh();
   }
 
-  void _onAck(String? clientMsgId) {
-    if (clientMsgId == null) return;
-    final idx = messages.indexWhere((m) => m.clientMsgId == clientMsgId);
-    if (idx == -1) return;
-    final msg = messages[idx];
-    if (msg.status != MessageStatus.sending) return;
-
-    msg.status = MessageStatus.sent;
-    messages.refresh();
-
-    // 不立刻删除 localFilePath，ACK 之后仍保留本地文件作为播放兜底
-    // （即使 mediaUrl 暂时网络不通也能播自己的录音）。
-    // 7 天过期由 VoiceCacheManager.cleanupOldFiles 定期清理。
-  }
-
   void _scrollToBottom() {
     // 用 addPostFrameCallback 等到新消息完成 layout 后再滚，
     // 否则 maxScrollExtent 还是旧值，新气泡会被输入框挡住。
@@ -304,6 +328,7 @@ class ChatController extends GetxController {
   @override
   void onClose() {
     _wsSubscription?.cancel();
+    _senderSub?.cancel();
     inputController.dispose();
     scrollController.dispose();
     recorder.dispose();
