@@ -30,21 +30,18 @@ class MessageBubbleBase extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final indicator = _buildIndicator();
-    final contentChild = Flexible(child: child);
+    // sent / null 状态：直接返回 child，不引入 Row 包装，保持 child 的
+    // intrinsic 尺寸布局（否则 Flexible 会让 text 气泡被拉宽）。
+    if (indicator == null) return child;
 
     return Row(
       mainAxisAlignment:
           isFromAi ? MainAxisAlignment.start : MainAxisAlignment.end,
       crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: isFromAi
-          ? [
-              contentChild,
-              if (indicator != null) indicator,
-            ]
-          : [
-              if (indicator != null) indicator,
-              contentChild,
-            ],
+          ? [Flexible(child: child), indicator]
+          : [indicator, Flexible(child: child)],
     );
   }
 

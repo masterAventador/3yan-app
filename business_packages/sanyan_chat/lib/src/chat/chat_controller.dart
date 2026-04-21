@@ -227,6 +227,11 @@ class ChatController extends GetxController {
     _uploadAndSendVoice(msg);
   }
 
+  /// 重试一条失败的消息（当前为空实现，T19 填充为调 MessageSender.retry）。
+  void retryMessage(Message msg) {
+    // TODO(T19): 接入 MessageSender.retry
+  }
+
   /// Retry failed voice message
   Future<void> retryVoiceMessage(Message msg) async {
     if (msg.localFilePath == null) return;
