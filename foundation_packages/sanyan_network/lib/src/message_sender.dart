@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'message_wire_status.dart';
 import 'pending_entry.dart';
 import 'ws_client.dart';
@@ -32,6 +33,9 @@ class MessageSender extends GetxService {
   final WsClient _wsClient;
   final Duration _timeout;
   final Duration _scanInterval;
+  final String _boxName;
+  GetStorage? _box;
+  static const _storeKey = 'pending';
 
   final Map<String, PendingEntry> _pending = {};
   Timer? _scanTimer;
@@ -49,11 +53,45 @@ class MessageSender extends GetxService {
     required WsClient wsClient,
     Duration timeout = const Duration(seconds: 30),
     Duration scanInterval = const Duration(seconds: 1),
+    String boxName = 'sanyan_pending',
   })  : _wsClient = wsClient,
         _timeout = timeout,
-        _scanInterval = scanInterval {
+        _scanInterval = scanInterval,
+        _boxName = boxName {
     _wsEventSub = _wsClient.eventStream.listen(_onWsEvent);
     _wsDisconnectSub = _wsClient.onDisconnected.listen(_onDisconnected);
+  }
+
+  /// 冷启加载。main.dart onInit 里 await 它，保证 GetStorage 初始化 +
+  /// pending 加载完毕再启路由。
+  Future<void> initAsync() async {
+    await GetStorage.init(_boxName);
+    _box = GetStorage(_boxName);
+    _loadFromDisk();
+  }
+
+  void _loadFromDisk() {
+    final raw = _box?.read<List<dynamic>>(_storeKey);
+    if (raw == null) return;
+    for (final item in raw) {
+      final entry =
+          PendingEntry.fromJson(Map<String, dynamic>.from(item as Map));
+      // 冷启 sending 状态立即转 failed——timer 和 socket 都随进程消亡，
+      // 等不到 ACK 了。客户端按 failed 展示感叹号可重试。
+      if (entry.messageJson['status'] == MessageWireStatus.sending) {
+        entry.messageJson['status'] = MessageWireStatus.failed;
+      }
+      _pending[entry.clientMsgId] = entry;
+    }
+  }
+
+  void _persist() {
+    // 初始化前的调用（理论上不应该发生，但防御一下）
+    if (_box == null) return;
+    _box!.write(
+      _storeKey,
+      _pending.values.map((e) => e.toJson()).toList(),
+    );
   }
 
   /// 取指定会话的所有 pending 条目（包含 sending 和 failed 状态）。
@@ -89,6 +127,7 @@ class MessageSender extends GetxService {
       clientMsgId: clientMsgId,
     );
     _ensureScanTimer();
+    _persist();
   }
 
   void _onWsEvent(WsEvent event) {
@@ -103,6 +142,7 @@ class MessageSender extends GetxService {
     if (entry == null) return;
     entry.messageJson['status'] = MessageWireStatus.sent;
     _statusChangesController.add(entry);
+    _persist();
     _stopScanTimerIfEmpty();
   }
 
@@ -116,6 +156,7 @@ class MessageSender extends GetxService {
     }
     _scanTimer?.cancel();
     _scanTimer = null;
+    _persist();
   }
 
   void _ensureScanTimer() {
@@ -145,6 +186,9 @@ class MessageSender extends GetxService {
         entry.messageJson['status'] = MessageWireStatus.failed;
         _statusChangesController.add(entry);
       }
+    }
+    if (expiredIds.isNotEmpty) {
+      _persist();
     }
     _stopScanTimerIfEmpty();
   }

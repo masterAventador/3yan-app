@@ -1,12 +1,20 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:sanyan_network/sanyan_network.dart';
 
 import 'support/fake_ws_client.dart';
 
 void main() {
-  setUp(() {
+  setUp(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    const channel = MethodChannel('plugins.flutter.io/path_provider');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (_) async => '/tmp');
     Get.reset();
+    await GetStorage.init('sanyan_pending_test');
+    await GetStorage('sanyan_pending_test').erase();
   });
 
   test('MessageSender can be constructed with dependencies', () {
@@ -252,5 +260,101 @@ void main() {
     expect(changes, isEmpty); // 没有 pending 就不该广播
 
     ws.disposeForTest();
+  });
+
+  test('persist: sendText writes pending to GetStorage', () async {
+    final ws = FakeWsClient();
+    final sender = MessageSender(
+      wsClient: ws,
+      timeout: const Duration(seconds: 30),
+      scanInterval: const Duration(seconds: 1),
+      boxName: 'sanyan_pending_test',
+    );
+    await sender.initAsync();
+
+    sender.sendText(
+      conversationId: 1,
+      clientMsgId: 'persist-1',
+      messageJson: {
+        'content': 'hi',
+        'clientMsgId': 'persist-1',
+        'conversationId': 1,
+        'status': MessageWireStatus.sending,
+      },
+    );
+
+    final stored =
+        GetStorage('sanyan_pending_test').read<List<dynamic>>('pending');
+    expect(stored, isNotNull);
+    expect(stored, hasLength(1));
+    expect(stored!.first['clientMsgId'], 'persist-1');
+
+    ws.disposeForTest();
+  });
+
+  test('persist: ACK removes entry from GetStorage', () async {
+    final ws = FakeWsClient();
+    final sender = MessageSender(
+      wsClient: ws,
+      boxName: 'sanyan_pending_test',
+    );
+    await sender.initAsync();
+
+    sender.sendText(
+      conversationId: 1,
+      clientMsgId: 'persist-ack',
+      messageJson: {
+        'content': 'hi',
+        'clientMsgId': 'persist-ack',
+        'conversationId': 1,
+        'status': MessageWireStatus.sending,
+      },
+    );
+    ws.simulateAck('persist-ack');
+    await Future.delayed(const Duration(milliseconds: 30));
+
+    final stored =
+        GetStorage('sanyan_pending_test').read<List<dynamic>>('pending');
+    expect(stored ?? [], isEmpty);
+
+    ws.disposeForTest();
+  });
+
+  test('cold start: pending with sending status loaded as failed', () async {
+    // 第一个 sender 写入一条 sending 消息并持久化
+    final ws1 = FakeWsClient();
+    final sender1 = MessageSender(
+      wsClient: ws1,
+      boxName: 'sanyan_pending_test',
+    );
+    await sender1.initAsync();
+    sender1.sendText(
+      conversationId: 1,
+      clientMsgId: 'cold-start-1',
+      messageJson: {
+        'content': 'x',
+        'clientMsgId': 'cold-start-1',
+        'conversationId': 1,
+        'status': MessageWireStatus.sending,
+      },
+    );
+    sender1.onClose();
+    ws1.disposeForTest();
+
+    // 第二个 sender 从 disk 恢复（模拟冷启）
+    final ws2 = FakeWsClient();
+    final sender2 = MessageSender(
+      wsClient: ws2,
+      boxName: 'sanyan_pending_test',
+    );
+    await sender2.initAsync();
+
+    final pending = sender2.getPending(1);
+    expect(pending, hasLength(1));
+    expect(pending.first.clientMsgId, 'cold-start-1');
+    // 冷启后 sending 立即转 failed（Timer/socket 没了，没指望被 ACK）
+    expect(pending.first.messageJson['status'], MessageWireStatus.failed);
+
+    ws2.disposeForTest();
   });
 }
