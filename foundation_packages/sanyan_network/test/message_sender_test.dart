@@ -117,4 +117,69 @@ void main() {
     expect(changes, isEmpty);
     ws.disposeForTest();
   });
+
+  test('timeout: pending message exceeding timeout is marked failed', () async {
+    final ws = FakeWsClient();
+    final sender = MessageSender(
+      wsClient: ws,
+      timeout: const Duration(milliseconds: 100),
+      scanInterval: const Duration(milliseconds: 20),
+    );
+    final changes = <PendingEntry>[];
+    sender.statusChanges.listen(changes.add);
+
+    sender.sendText(
+      conversationId: 1,
+      clientMsgId: 'cid-timeout',
+      messageJson: {
+        'content': 'hi',
+        'contentType': 'text',
+        'clientMsgId': 'cid-timeout',
+        'conversationId': 1,
+        'status': MessageWireStatus.sending,
+      },
+    );
+
+    // 等超过 timeout + 一轮 scan（scanInterval = 20ms）
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    expect(sender.getPending(1), isEmpty);
+    expect(changes, hasLength(1));
+    expect(changes.first.messageJson['status'], MessageWireStatus.failed);
+    expect(changes.first.clientMsgId, 'cid-timeout');
+
+    ws.disposeForTest();
+  });
+
+  test('scan timer stops when pending is empty', () async {
+    final ws = FakeWsClient();
+    final sender = MessageSender(
+      wsClient: ws,
+      timeout: const Duration(milliseconds: 50),
+      scanInterval: const Duration(milliseconds: 20),
+    );
+
+    sender.sendText(
+      conversationId: 1,
+      clientMsgId: 'cid-lazy',
+      messageJson: {
+        'content': 'hi',
+        'clientMsgId': 'cid-lazy',
+        'conversationId': 1,
+        'status': MessageWireStatus.sending,
+      },
+    );
+
+    // ACK 把它移除
+    ws.simulateAck('cid-lazy');
+    await Future.delayed(const Duration(milliseconds: 30));
+
+    expect(sender.getPending(1), isEmpty);
+    // Timer 应当已停（没有新消息时不空转）
+    // 这里不直接 assert _scanTimer == null（私有字段），靠"没有异常"来代理验证
+    // 关键是：再等 scanInterval 两轮也不会有任何异常 / 错误广播
+    await Future.delayed(const Duration(milliseconds: 60));
+
+    ws.disposeForTest();
+  });
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:get/get.dart';
+import 'message_wire_status.dart';
 import 'pending_entry.dart';
 import 'ws_client.dart';
 import 'ws_event_type.dart';
@@ -71,6 +72,8 @@ class MessageSender extends GetxService {
       clientMsgId: clientMsgId,
       conversationId: conversationId,
       sendTimeMs: DateTime.now().millisecondsSinceEpoch,
+      // 浅拷贝够用：messageJson 字段都是扁平 primitive（content/status/
+      // clientMsgId/conversationId），没有嵌套 Map。
       messageJson: Map<String, dynamic>.from(messageJson),
     );
     _pending[clientMsgId] = entry;
@@ -79,6 +82,7 @@ class MessageSender extends GetxService {
       content: messageJson['content'] as String,
       clientMsgId: clientMsgId,
     );
+    _ensureScanTimer();
   }
 
   void _onWsEvent(WsEvent event) {
@@ -91,8 +95,38 @@ class MessageSender extends GetxService {
     if (clientMsgId == null) return;
     final entry = _pending.remove(clientMsgId);
     if (entry == null) return;
-    entry.messageJson['status'] = 'sent';
+    entry.messageJson['status'] = MessageWireStatus.sent;
     _statusChangesController.add(entry);
+    _stopScanTimerIfEmpty();
+  }
+
+  void _ensureScanTimer() {
+    _scanTimer ??= Timer.periodic(_scanInterval, (_) => _scan());
+  }
+
+  void _stopScanTimerIfEmpty() {
+    if (_pending.isEmpty) {
+      _scanTimer?.cancel();
+      _scanTimer = null;
+    }
+  }
+
+  void _scan() {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final expiredIds = <String>[];
+    for (final entry in _pending.values) {
+      if (now - entry.sendTimeMs > _timeout.inMilliseconds) {
+        expiredIds.add(entry.clientMsgId);
+      }
+    }
+    for (final id in expiredIds) {
+      final entry = _pending.remove(id);
+      if (entry != null) {
+        entry.messageJson['status'] = MessageWireStatus.failed;
+        _statusChangesController.add(entry);
+      }
+    }
+    _stopScanTimerIfEmpty();
   }
 
   @override

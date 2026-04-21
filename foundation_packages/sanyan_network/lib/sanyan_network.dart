@@ -8,3 +8,4 @@ export 'src/ws_client.dart';
 export 'src/ws_event_type.dart';
 export 'src/pending_entry.dart';
 export 'src/message_sender.dart';
+export 'src/message_wire_status.dart';
