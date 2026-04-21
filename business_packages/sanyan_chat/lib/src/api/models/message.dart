@@ -54,7 +54,19 @@ class Message {
     createdAt: json['createdAt'] ?? '',
     duration: json['duration'],
     fallbackReason: json['fallbackReason'],
+    clientMsgId: json['clientMsgId'],
+    status: _parseStatus(json['status'] as String?),
   );
+
+  // MessageStatus enum 的 name 和 MessageWireStatus 的字符串常量对齐
+  // （sending/sent/failed），解析失败（null 或未知值）统一返回 null。
+  static MessageStatus? _parseStatus(String? raw) {
+    if (raw == null) return null;
+    for (final s in MessageStatus.values) {
+      if (s.name == raw) return s;
+    }
+    return null;
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -67,5 +79,7 @@ class Message {
     'createdAt': createdAt,
     'duration': duration,
     'fallbackReason': fallbackReason,
+    'clientMsgId': clientMsgId,
+    'status': status?.name,
   };
 }

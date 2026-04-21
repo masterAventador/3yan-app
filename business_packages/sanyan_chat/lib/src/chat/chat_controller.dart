@@ -179,15 +179,8 @@ class ChatController extends GetxController {
     final text = inputController.text.trim();
     if (text.isEmpty) return;
 
-    final wsClient = Get.find<WsClient>();
-    final clientMsgId = const Uuid().v4();
-    wsClient.sendMessage(
-      conversationId: conversation.id,
-      content: text,
-      clientMsgId: clientMsgId,
-    );
-
-    messages.add(Message(
+    final clientMsgId = _uuid.v4();
+    final msg = Message(
       id: 0,
       conversationId: conversation.id,
       senderType: SenderType.user,
@@ -196,10 +189,20 @@ class ChatController extends GetxController {
       source: 'reply',
       createdAt: DateTime.now().toString(),
       clientMsgId: clientMsgId,
-    ));
+      // 关键：标 sending（之前一直 null，导致 UI 从不展示发送中/失败态）。
+      status: MessageStatus.sending,
+    );
+    messages.add(msg);
+    _scrollToBottom();
+
+    // 发送交给 MessageSender —— pending 追踪 / 超时 / 断线 / 持久化 由它兜底。
+    Get.find<MessageSender>().sendText(
+      conversationId: conversation.id,
+      clientMsgId: clientMsgId,
+      messageJson: msg.toJson(),
+    );
 
     inputController.clear();
-    _scrollToBottom();
   }
 
   /// Send voice message with optimistic UI + concurrent upload
