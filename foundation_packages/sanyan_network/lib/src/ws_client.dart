@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:uuid/uuid.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'app_constants.dart';
 import 'content_type.dart' as ct;
@@ -45,7 +44,6 @@ class WsClient extends GetxService {
   Timer? _reconnectTimer;
   bool _isConnected = false;
   int _reconnectAttempts = 0;
-  static const _uuid = Uuid();
 
   /// 指数退避重连延迟序列：1s, 2s, 5s, 10s, 30s（之后一直 30s）。
   static Duration reconnectDelayForAttempt(int attempt) {
@@ -129,8 +127,12 @@ class WsClient extends GetxService {
     _channel = null;
   }
 
-  String sendMessage(int conversationId, String content, {String contentType = ct.ContentType.text}) {
-    final clientMsgId = _uuid.v4();
+  void sendMessage({
+    required int conversationId,
+    required String content,
+    required String clientMsgId,
+    String contentType = ct.ContentType.text,
+  }) {
     _send({
       'type': WsEventType.sendMessage,
       'conversationId': conversationId,
@@ -138,16 +140,14 @@ class WsClient extends GetxService {
       'content': content,
       'clientMsgId': clientMsgId,
     });
-    return clientMsgId;
   }
 
-  String sendVoiceMessage({
+  void sendVoiceMessage({
     required int conversationId,
     required String mediaUrl,
     required int duration,
-    String? clientMsgId,
+    required String clientMsgId,
   }) {
-    final msgId = clientMsgId ?? _uuid.v4();
     _send({
       'type': WsEventType.sendMessage,
       'conversationId': conversationId,
@@ -155,9 +155,8 @@ class WsClient extends GetxService {
       'content': '',
       'mediaUrl': mediaUrl,
       'duration': duration,
-      'clientMsgId': msgId,
+      'clientMsgId': clientMsgId,
     });
-    return msgId;
   }
 
   void syncMessages({int lastMsgId = 0}) {

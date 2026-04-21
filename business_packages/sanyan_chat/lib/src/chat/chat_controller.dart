@@ -180,7 +180,12 @@ class ChatController extends GetxController {
     if (text.isEmpty) return;
 
     final wsClient = Get.find<WsClient>();
-    final clientMsgId = wsClient.sendMessage(conversation.id, text);
+    final clientMsgId = const Uuid().v4();
+    wsClient.sendMessage(
+      conversationId: conversation.id,
+      content: text,
+      clientMsgId: clientMsgId,
+    );
 
     messages.add(Message(
       id: 0,
@@ -253,7 +258,7 @@ class ChatController extends GetxController {
         conversationId: conversation.id,
         mediaUrl: uploadResp.data!.url,
         duration: uploadResp.data!.duration,
-        clientMsgId: msg.clientMsgId,
+        clientMsgId: msg.clientMsgId!,
       );
     } catch (e, stack) {
       debugPrint('[ChatController] _uploadAndSendVoice failed: $e\n$stack');
