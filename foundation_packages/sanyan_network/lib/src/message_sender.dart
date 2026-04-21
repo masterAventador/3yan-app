@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'pending_entry.dart';
 import 'ws_client.dart';
+import 'ws_event_type.dart';
 
 /// 跨 ChatController 生命周期的消息发送管理器（GetxService 单例）。
 ///
@@ -32,6 +33,7 @@ class MessageSender extends GetxService {
 
   final Map<String, PendingEntry> _pending = {};
   Timer? _scanTimer;
+  StreamSubscription<WsEvent>? _wsEventSub;
 
   final StreamController<PendingEntry> _statusChangesController =
       StreamController<PendingEntry>.broadcast();
@@ -46,7 +48,9 @@ class MessageSender extends GetxService {
     Duration scanInterval = const Duration(seconds: 1),
   })  : _wsClient = wsClient,
         _timeout = timeout,
-        _scanInterval = scanInterval;
+        _scanInterval = scanInterval {
+    _wsEventSub = _wsClient.eventStream.listen(_onWsEvent);
+  }
 
   /// 取指定会话的所有 pending 条目（包含 sending 和 failed 状态）。
   /// ChatController onInit 时调用这个合并到 messages 列表。
@@ -56,9 +60,45 @@ class MessageSender extends GetxService {
         .toList();
   }
 
+  /// 发送文本消息：把消息加入 pending 队列 + 调 WsClient.sendMessage。
+  /// ACK / 超时 / 断线 后续由 eventStream 订阅 + 周期扫描处理。
+  void sendText({
+    required int conversationId,
+    required String clientMsgId,
+    required Map<String, dynamic> messageJson,
+  }) {
+    final entry = PendingEntry(
+      clientMsgId: clientMsgId,
+      conversationId: conversationId,
+      sendTimeMs: DateTime.now().millisecondsSinceEpoch,
+      messageJson: Map<String, dynamic>.from(messageJson),
+    );
+    _pending[clientMsgId] = entry;
+    _wsClient.sendMessage(
+      conversationId: conversationId,
+      content: messageJson['content'] as String,
+      clientMsgId: clientMsgId,
+    );
+  }
+
+  void _onWsEvent(WsEvent event) {
+    if (event.type == WsEventType.ack) {
+      _handleAck(event.clientMsgId);
+    }
+  }
+
+  void _handleAck(String? clientMsgId) {
+    if (clientMsgId == null) return;
+    final entry = _pending.remove(clientMsgId);
+    if (entry == null) return;
+    entry.messageJson['status'] = 'sent';
+    _statusChangesController.add(entry);
+  }
+
   @override
   void onClose() {
     _scanTimer?.cancel();
+    _wsEventSub?.cancel();
     _statusChangesController.close();
     super.onClose();
   }

@@ -41,4 +41,80 @@ void main() {
     expect(sender.getPending(1), isEmpty);
     ws.disposeForTest();
   });
+
+  test('sendText: message enters pending, calls wsClient.sendMessage', () {
+    final ws = FakeWsClient();
+    final sender = MessageSender(
+      wsClient: ws,
+      timeout: const Duration(milliseconds: 500),
+      scanInterval: const Duration(milliseconds: 50),
+    );
+
+    sender.sendText(
+      conversationId: 1,
+      clientMsgId: 'cid-1',
+      messageJson: {
+        'content': 'hi',
+        'contentType': 'text',
+        'clientMsgId': 'cid-1',
+        'conversationId': 1,
+        'status': 'sending',
+      },
+    );
+
+    expect(sender.getPending(1), hasLength(1));
+    expect(sender.getPending(1).first.clientMsgId, 'cid-1');
+    expect(ws.sentTexts, hasLength(1));
+    expect(ws.sentTexts.first['clientMsgId'], 'cid-1');
+    expect(ws.sentTexts.first['content'], 'hi');
+
+    ws.disposeForTest();
+  });
+
+  test('ACK: pending entry marked sent, removed, broadcasted', () async {
+    final ws = FakeWsClient();
+    final sender = MessageSender(
+      wsClient: ws,
+      timeout: const Duration(milliseconds: 500),
+      scanInterval: const Duration(milliseconds: 50),
+    );
+
+    final changes = <PendingEntry>[];
+    sender.statusChanges.listen(changes.add);
+
+    sender.sendText(
+      conversationId: 1,
+      clientMsgId: 'cid-ack',
+      messageJson: {
+        'content': 'hi',
+        'contentType': 'text',
+        'clientMsgId': 'cid-ack',
+        'conversationId': 1,
+        'status': 'sending',
+      },
+    );
+
+    ws.simulateAck('cid-ack');
+    await Future.delayed(const Duration(milliseconds: 20));
+
+    expect(sender.getPending(1), isEmpty);
+    expect(changes, hasLength(1));
+    expect(changes.first.messageJson['status'], 'sent');
+    expect(changes.first.clientMsgId, 'cid-ack');
+
+    ws.disposeForTest();
+  });
+
+  test('ACK for unknown clientMsgId: no pending change, no broadcast', () async {
+    final ws = FakeWsClient();
+    final sender = MessageSender(wsClient: ws);
+    final changes = <PendingEntry>[];
+    sender.statusChanges.listen(changes.add);
+
+    ws.simulateAck('nonexistent-id');
+    await Future.delayed(const Duration(milliseconds: 20));
+
+    expect(changes, isEmpty);
+    ws.disposeForTest();
+  });
 }
