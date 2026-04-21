@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'content_type.dart';
 import 'message_wire_status.dart';
 import 'pending_entry.dart';
 import 'ws_client.dart';
@@ -42,8 +43,10 @@ class MessageSender extends GetxService {
   StreamSubscription<WsEvent>? _wsEventSub;
   StreamSubscription<void>? _wsDisconnectSub;
 
+  // sync: true → 订阅者能在同一 tick 内看到 retry / ack / timeout 等状态变化，
+  // 避免依赖 microtask 调度顺序（测试和 ChatController 监听都不需要异步 gap）。
   final StreamController<PendingEntry> _statusChangesController =
-      StreamController<PendingEntry>.broadcast();
+      StreamController<PendingEntry>.broadcast(sync: true);
 
   /// 状态变化事件流：Sender 更新了某条消息的 status（sent / failed）后广播。
   /// ChatController 订阅并刷新 messages 列表。
@@ -130,6 +133,76 @@ class MessageSender extends GetxService {
     _persist();
   }
 
+  /// 发送语音消息：和 sendText 对称，把语音消息加入 pending 队列 +
+  /// 调 WsClient.sendVoiceMessage。ACK/超时/断线 路径和文本消息一致。
+  void sendVoice({
+    required int conversationId,
+    required String clientMsgId,
+    required String mediaUrl,
+    required int duration,
+    required Map<String, dynamic> messageJson,
+  }) {
+    final entry = PendingEntry(
+      clientMsgId: clientMsgId,
+      conversationId: conversationId,
+      sendTimeMs: DateTime.now().millisecondsSinceEpoch,
+      // 浅拷贝够用：messageJson 字段都是扁平 primitive。
+      messageJson: Map<String, dynamic>.from(messageJson),
+    );
+    _pending[clientMsgId] = entry;
+    _wsClient.sendVoiceMessage(
+      conversationId: conversationId,
+      mediaUrl: mediaUrl,
+      duration: duration,
+      clientMsgId: clientMsgId,
+    );
+    _ensureScanTimer();
+    _persist();
+  }
+
+  /// 重试一条 failed 的消息。保留 clientMsgId，刷新 sendTimeMs，按
+  /// messageJson['contentType'] 分派到 WsClient 对应 send 方法。
+  /// 广播 statusChanges 让 UI 切换回 sending 展示。
+  void retry(PendingEntry entry) {
+    final contentType = entry.messageJson['contentType'] as String?;
+    final refreshed = PendingEntry(
+      clientMsgId: entry.clientMsgId,
+      conversationId: entry.conversationId,
+      sendTimeMs: DateTime.now().millisecondsSinceEpoch,
+      messageJson: Map<String, dynamic>.from(entry.messageJson),
+    );
+    refreshed.messageJson['status'] = MessageWireStatus.sending;
+    _pending[entry.clientMsgId] = refreshed;
+
+    if (contentType == ContentType.voice) {
+      _wsClient.sendVoiceMessage(
+        conversationId: entry.conversationId,
+        mediaUrl: entry.messageJson['mediaUrl'] as String,
+        duration: entry.messageJson['duration'] as int,
+        clientMsgId: entry.clientMsgId,
+      );
+    } else {
+      _wsClient.sendMessage(
+        conversationId: entry.conversationId,
+        content: entry.messageJson['content'] as String,
+        clientMsgId: entry.clientMsgId,
+      );
+    }
+
+    _ensureScanTimer();
+    _statusChangesController.add(refreshed);
+    _persist();
+  }
+
+  /// 彻底从 pending 队列移除一条消息。ChatController 在用户主动“删掉
+  /// 失败消息”的交互里调（当前 UI 不暴露，留 API 给未来）。
+  void removePending(String clientMsgId) {
+    final removed = _pending.remove(clientMsgId);
+    if (removed == null) return;
+    _stopScanTimerIfNoSending();
+    _persist();
+  }
+
   void _onWsEvent(WsEvent event) {
     if (event.type == WsEventType.ack) {
       _handleAck(event.clientMsgId);
@@ -138,22 +211,27 @@ class MessageSender extends GetxService {
 
   void _handleAck(String? clientMsgId) {
     if (clientMsgId == null) return;
+    // ACK 代表消息已经成功入库，从 pending 移除（它会进入正式消息列表）。
     final entry = _pending.remove(clientMsgId);
     if (entry == null) return;
     entry.messageJson['status'] = MessageWireStatus.sent;
     _statusChangesController.add(entry);
     _persist();
-    _stopScanTimerIfEmpty();
+    _stopScanTimerIfNoSending();
   }
 
   void _onDisconnected(void _) {
-    if (_pending.isEmpty) return;
-    final entries = _pending.values.toList();
-    _pending.clear();
-    for (final entry in entries) {
+    // 断线时把所有 sending 状态条目批量翻成 failed。保留条目在 _pending，
+    // 等待用户 retry 或 removePending。
+    final sendingEntries = _pending.values
+        .where((e) => e.messageJson['status'] == MessageWireStatus.sending)
+        .toList();
+    if (sendingEntries.isEmpty) return;
+    for (final entry in sendingEntries) {
       entry.messageJson['status'] = MessageWireStatus.failed;
       _statusChangesController.add(entry);
     }
+    // 剩下的都是 failed，scan 没事干了。
     _scanTimer?.cancel();
     _scanTimer = null;
     _persist();
@@ -163,25 +241,30 @@ class MessageSender extends GetxService {
     _scanTimer ??= Timer.periodic(_scanInterval, (_) => _scan());
   }
 
-  void _stopScanTimerIfEmpty() {
-    if (_pending.isEmpty) {
+  /// 当 _pending 中已无 sending 状态条目（全是 failed 或空），停扫描 Timer。
+  /// failed 条目留着等 retry / removePending，不需要 Timer 轮询。
+  void _stopScanTimerIfNoSending() {
+    final hasSending = _pending.values
+        .any((e) => e.messageJson['status'] == MessageWireStatus.sending);
+    if (!hasSending) {
       _scanTimer?.cancel();
       _scanTimer = null;
     }
   }
 
   void _scan() {
-    // 两阶段扫描：先收集 expired ids 再 remove + 广播，
-    // 避免迭代 _pending.values 时修改 _pending 触发 ConcurrentModificationError。
+    // 超时扫描：只处理 sending 条目，翻成 failed 后保留在 _pending 中
+    // 等待 retry / removePending。避免迭代时修改 map，先收集 ids 再改。
     final now = DateTime.now().millisecondsSinceEpoch;
     final expiredIds = <String>[];
     for (final entry in _pending.values) {
+      if (entry.messageJson['status'] != MessageWireStatus.sending) continue;
       if (now - entry.sendTimeMs > _timeout.inMilliseconds) {
         expiredIds.add(entry.clientMsgId);
       }
     }
     for (final id in expiredIds) {
-      final entry = _pending.remove(id);
+      final entry = _pending[id];
       if (entry != null) {
         entry.messageJson['status'] = MessageWireStatus.failed;
         _statusChangesController.add(entry);
@@ -190,7 +273,7 @@ class MessageSender extends GetxService {
     if (expiredIds.isNotEmpty) {
       _persist();
     }
-    _stopScanTimerIfEmpty();
+    _stopScanTimerIfNoSending();
   }
 
   @override

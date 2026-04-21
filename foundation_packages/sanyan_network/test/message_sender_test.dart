@@ -151,7 +151,13 @@ void main() {
     // 等超过 timeout + 一轮 scan（scanInterval = 20ms）
     await Future.delayed(const Duration(milliseconds: 200));
 
-    expect(sender.getPending(1), isEmpty);
+    // failed 条目保留在 _pending 中等待 retry / removePending
+    expect(sender.getPending(1), hasLength(1));
+    expect(sender.getPending(1).first.messageJson['status'],
+        MessageWireStatus.failed);
+    // 没有 sending 条目了，scan Timer 应停
+    expect(sender.isScanActive, isFalse);
+    // failed 只应广播 1 次（不会每次 scan tick 重复广播）
     expect(changes, hasLength(1));
     expect(changes.first.messageJson['status'], MessageWireStatus.failed);
     expect(changes.first.clientMsgId, 'cid-timeout');
@@ -199,7 +205,7 @@ void main() {
     ws.disposeForTest();
   });
 
-  test('disconnect: all pending messages marked failed, broadcast, map cleared', () async {
+  test('disconnect: all pending messages marked failed, broadcast, retained for retry', () async {
     final ws = FakeWsClient();
     final sender = MessageSender(
       wsClient: ws,
@@ -237,8 +243,13 @@ void main() {
     ws.simulateDisconnect();
     await Future.delayed(const Duration(milliseconds: 20));
 
-    expect(sender.getPending(1), isEmpty);
-    expect(sender.getPending(2), isEmpty);
+    // failed 条目保留在 _pending（等待 retry/removePending），不清空
+    expect(sender.getPending(1), hasLength(1));
+    expect(sender.getPending(2), hasLength(1));
+    expect(sender.getPending(1).first.messageJson['status'],
+        MessageWireStatus.failed);
+    expect(sender.getPending(2).first.messageJson['status'],
+        MessageWireStatus.failed);
     expect(sender.isScanActive, isFalse); // Timer 也停了
     expect(changes, hasLength(2));
     for (final c in changes) {
@@ -316,6 +327,151 @@ void main() {
     final stored =
         GetStorage('sanyan_pending_test').read<List<dynamic>>('pending');
     expect(stored ?? [], isEmpty);
+
+    ws.disposeForTest();
+  });
+
+  test('sendVoice: enters pending, calls wsClient.sendVoiceMessage, starts scan timer', () {
+    final ws = FakeWsClient();
+    final sender = MessageSender(
+      wsClient: ws,
+      timeout: const Duration(seconds: 30),
+      scanInterval: const Duration(seconds: 1),
+    );
+
+    sender.sendVoice(
+      conversationId: 2,
+      clientMsgId: 'voice-1',
+      mediaUrl: 'https://cos/x.mp3',
+      duration: 5,
+      messageJson: {
+        'content': '',
+        'clientMsgId': 'voice-1',
+        'conversationId': 2,
+        'contentType': 'voice',
+        'mediaUrl': 'https://cos/x.mp3',
+        'duration': 5,
+        'status': MessageWireStatus.sending,
+      },
+    );
+
+    expect(sender.getPending(2), hasLength(1));
+    expect(sender.isScanActive, isTrue);
+    expect(ws.sentVoices, hasLength(1));
+    expect(ws.sentVoices.first['clientMsgId'], 'voice-1');
+    expect(ws.sentVoices.first['mediaUrl'], 'https://cos/x.mp3');
+    expect(ws.sentVoices.first['duration'], 5);
+
+    ws.disposeForTest();
+  });
+
+  test('retry text: re-enters sending with fresh sendTime and calls wsClient.sendMessage', () async {
+    final ws = FakeWsClient();
+    final sender = MessageSender(
+      wsClient: ws,
+      timeout: const Duration(milliseconds: 100),
+      scanInterval: const Duration(milliseconds: 20),
+    );
+    final changes = <PendingEntry>[];
+    sender.statusChanges.listen(changes.add);
+
+    sender.sendText(
+      conversationId: 1,
+      clientMsgId: 'retry-t',
+      messageJson: {
+        'content': 'x',
+        'clientMsgId': 'retry-t',
+        'conversationId': 1,
+        'contentType': 'text',
+        'status': MessageWireStatus.sending,
+      },
+    );
+    // 等超时
+    await Future.delayed(const Duration(milliseconds: 200));
+    expect(sender.getPending(1).first.messageJson['status'], MessageWireStatus.failed);
+    changes.clear(); // 只观察 retry 后的广播
+
+    final failedEntry = sender.getPending(1).first;
+    sender.retry(failedEntry);
+
+    expect(sender.getPending(1), hasLength(1));
+    expect(sender.getPending(1).first.messageJson['status'], MessageWireStatus.sending);
+    expect(ws.sentTexts, hasLength(2)); // 第一次 + 重试
+    expect(ws.sentTexts.last['clientMsgId'], 'retry-t');
+    expect(changes, hasLength(1));
+    expect(changes.first.messageJson['status'], MessageWireStatus.sending);
+
+    ws.disposeForTest();
+  });
+
+  test('retry voice: dispatches to wsClient.sendVoiceMessage by contentType', () async {
+    final ws = FakeWsClient();
+    final sender = MessageSender(
+      wsClient: ws,
+      timeout: const Duration(milliseconds: 100),
+      scanInterval: const Duration(milliseconds: 20),
+    );
+
+    sender.sendVoice(
+      conversationId: 1,
+      clientMsgId: 'retry-v',
+      mediaUrl: 'https://cos/y.mp3',
+      duration: 3,
+      messageJson: {
+        'content': '',
+        'clientMsgId': 'retry-v',
+        'conversationId': 1,
+        'contentType': 'voice',
+        'mediaUrl': 'https://cos/y.mp3',
+        'duration': 3,
+        'status': MessageWireStatus.sending,
+      },
+    );
+    await Future.delayed(const Duration(milliseconds: 200));
+    expect(sender.getPending(1).first.messageJson['status'], MessageWireStatus.failed);
+
+    sender.retry(sender.getPending(1).first);
+
+    expect(sender.getPending(1).first.messageJson['status'], MessageWireStatus.sending);
+    expect(ws.sentVoices, hasLength(2));
+    expect(ws.sentVoices.last['mediaUrl'], 'https://cos/y.mp3');
+
+    ws.disposeForTest();
+  });
+
+  test('removePending: entry removed, stops scan timer if last one', () {
+    final ws = FakeWsClient();
+    final sender = MessageSender(
+      wsClient: ws,
+      boxName: 'sanyan_pending_test',
+    );
+
+    sender.sendText(
+      conversationId: 1,
+      clientMsgId: 'rm-1',
+      messageJson: {
+        'content': 'x',
+        'clientMsgId': 'rm-1',
+        'conversationId': 1,
+        'contentType': 'text',
+        'status': MessageWireStatus.sending,
+      },
+    );
+    expect(sender.isScanActive, isTrue);
+
+    sender.removePending('rm-1');
+
+    expect(sender.getPending(1), isEmpty);
+    expect(sender.isScanActive, isFalse);
+
+    ws.disposeForTest();
+  });
+
+  test('removePending unknown id: no-op', () {
+    final ws = FakeWsClient();
+    final sender = MessageSender(wsClient: ws);
+
+    expect(() => sender.removePending('never-existed'), returnsNormally);
 
     ws.disposeForTest();
   });
