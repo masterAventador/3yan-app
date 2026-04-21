@@ -21,7 +21,7 @@ class FakeWsClient extends WsClient {
     required int conversationId,
     required String content,
     required String clientMsgId,
-    String contentType = 'text',
+    String contentType = ContentType.text,
   }) {
     sentTexts.add({
       'conversationId': conversationId,
@@ -47,7 +47,7 @@ class FakeWsClient extends WsClient {
 
   /// 测试辅助：模拟收到 ACK（注入 WsEvent 到事件流）
   void simulateAck(String clientMsgId) {
-    _events.add(WsEvent(type: 'ack', clientMsgId: clientMsgId));
+    _events.add(WsEvent(type: WsEventType.ack, clientMsgId: clientMsgId));
   }
 
   /// 测试辅助：模拟断开

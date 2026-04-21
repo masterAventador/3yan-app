@@ -21,10 +21,14 @@ import 'ws_client.dart';
 ///
 /// 测试时直接构造（skip GetxService 生命周期 onInit），
 /// 传入 FakeWsClient + 短 timeout/scanInterval。
+///
+/// T6 skeleton 说明：仅建立 API shape（getPending + statusChanges）
+/// 和 onClose 清理；ACK / timeout / disconnect / 持久化 / retry 由后续
+/// task（T7-T11）逐步追加。
 class MessageSender extends GetxService {
-  final WsClient wsClient;
-  final Duration timeout;
-  final Duration scanInterval;
+  final WsClient _wsClient;
+  final Duration _timeout;
+  final Duration _scanInterval;
 
   final Map<String, PendingEntry> _pending = {};
   Timer? _scanTimer;
@@ -37,10 +41,12 @@ class MessageSender extends GetxService {
   Stream<PendingEntry> get statusChanges => _statusChangesController.stream;
 
   MessageSender({
-    required this.wsClient,
-    this.timeout = const Duration(seconds: 30),
-    this.scanInterval = const Duration(seconds: 1),
-  });
+    required WsClient wsClient,
+    Duration timeout = const Duration(seconds: 30),
+    Duration scanInterval = const Duration(seconds: 1),
+  })  : _wsClient = wsClient,
+        _timeout = timeout,
+        _scanInterval = scanInterval;
 
   /// 取指定会话的所有 pending 条目（包含 sending 和 failed 状态）。
   /// ChatController onInit 时调用这个合并到 messages 列表。
