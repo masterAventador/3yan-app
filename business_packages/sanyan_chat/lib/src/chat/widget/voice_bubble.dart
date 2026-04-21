@@ -1,11 +1,9 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:get/get.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import 'package:sanyan_network/sanyan_network.dart';
 import '../../api/models/message.dart';
-import '../chat_controller.dart';
 
 /// 单例协调器：同时只允许一个 VoiceBubble 在播放，点新气泡先停当前的。
 class _VoicePlaybackCoordinator {
@@ -190,59 +188,13 @@ class _VoiceBubbleState extends State<VoiceBubble> {
       ),
     );
 
-    final statusIcon = _buildStatusIcon();
-
-    // 状态图标用 Stack 绝对定位在气泡外部：Stack size = bubble size，
-    // 状态出现/消失不影响气泡尺寸或位置。
     // 播放态挂一个可发现的 key，供 E2E 测试探测。
+    // sending / failed 状态指示由外层 MessageBubbleBase 统一处理。
     return GestureDetector(
       key: _isPlaying ? ValueKey('voice_playing_${widget.message.id}') : null,
       onTap: _togglePlay,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          bubble,
-          if (statusIcon != null)
-            Positioned(
-              left: isUser ? -24 : null,
-              right: !isUser ? -24 : null,
-              top: 0,
-              bottom: 0,
-              child: Center(child: statusIcon),
-            ),
-        ],
-      ),
+      child: bubble,
     );
-  }
-
-  Widget? _buildStatusIcon() {
-    if (widget.message.isSending) {
-      return const SizedBox(
-        width: 14,
-        height: 14,
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          valueColor: AlwaysStoppedAnimation<Color>(AuraColors.primary),
-        ),
-      );
-    }
-    if (widget.message.isFailed) {
-      return GestureDetector(
-        onTap: () {
-          Get.find<ChatController>().retryVoiceMessage(widget.message);
-        },
-        child: Container(
-          width: 18,
-          height: 18,
-          decoration: const BoxDecoration(
-            color: Colors.red,
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.priority_high, color: Colors.white, size: 12),
-        ),
-      );
-    }
-    return null;
   }
 }
 
