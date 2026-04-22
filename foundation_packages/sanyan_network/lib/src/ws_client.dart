@@ -78,7 +78,7 @@ class WsClient extends GetxService {
   /// Set this to provide the auth token for WebSocket connections.
   static WsTokenProvider? tokenProvider;
 
-  void connect() {
+  Future<void> connect() async {
     // 先清理旧连接，防止重复监听
     _cleanup();
 
@@ -88,9 +88,13 @@ class WsClient extends GetxService {
     final uri = Uri.parse('${AppConstants.wsUrl}?token=$token');
     _logConnect(uri);
 
-    // 使用 runZonedGuarded 捕获所有同步和异步异常
-    runZonedGuarded(() {
+    try {
       _channel = WebSocketChannel.connect(uri);
+      // WebSocketChannel.connect 是惰性的，真正的 WS handshake 在这里等。
+      // handshake 失败（断网、服务端拒连）会抛异常，走下面的 catch → _onDisconnected
+      // → _scheduleReconnect，计数递增进入退避序列。
+      // ready 成功才意味着链路真通了，这时重置计数才合理。
+      await _channel!.ready;
 
       _channel!.stream.listen(
         _onMessage,
@@ -104,11 +108,10 @@ class WsClient extends GetxService {
       _reconnectAttempts = 0;
       _startHeartbeat();
       syncMessages();
-    }, (error, stack) {
-      // 连接失败或 stream 抛出的任何异常都不会让 app 崩溃
+    } catch (error) {
       _logConnectError(error);
       _onDisconnected();
-    });
+    }
   }
 
   void disconnect() {
