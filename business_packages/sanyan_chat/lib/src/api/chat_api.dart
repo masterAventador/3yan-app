@@ -59,16 +59,14 @@ abstract class ChatApi {
         'type': ContentType.voice,
         'duration': duration,
       });
-
-      final resp = await _client.postFormData(
+      return _client.postFormData<VoiceUploadResult>(
         '/api/media/upload',
         formData: formData,
-      );
-      return ApiResponse.fromJson(
-        resp as Map<String, dynamic>,
-        (data) => VoiceUploadResult.fromJson(data as Map<String, dynamic>),
+        fromData: (data) => VoiceUploadResult.fromJson(data as Map<String, dynamic>),
       );
     } catch (e) {
+      // 仅覆盖 FormData 构造阶段的本地 IO 异常（文件不存在等）。
+      // 网络/dio 异常已由 ApiClient._request 内部兜底。
       return ApiResponse(success: false, errMsg: '上传失败: $e');
     }
   }

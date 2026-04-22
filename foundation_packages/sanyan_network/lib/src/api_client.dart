@@ -102,35 +102,73 @@ class ApiClient {
     return raw.split('\n').map((line) => '║ $line').join('\n');
   }
 
+  /// 统一请求入口：把 dio 的 DioException / 其他异常兜住，转成
+  /// ApiResponse(success: false, errMsg: 友好文案) 返回——对外契约"永不抛异常"。
+  /// 业务层只需检查 resp.success / resp.errMsg，不需要 try-catch。
+  Future<ApiResponse<T>> _request<T>({
+    required String method,
+    required String path,
+    Map<String, dynamic>? params,
+    Object? data,
+    T Function(dynamic)? fromData,
+  }) async {
+    try {
+      final resp = await _dio.request<dynamic>(
+        path,
+        queryParameters: params,
+        data: data,
+        options: Options(method: method),
+      );
+      return ApiResponse.fromJson(resp.data, fromData);
+    } on DioException catch (e) {
+      return ApiResponse<T>(success: false, errMsg: _friendlyError(e));
+    } catch (e) {
+      return ApiResponse<T>(success: false, errMsg: '请求异常: $e');
+    }
+  }
+
+  String _friendlyError(DioException e) {
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return '网络超时，请稍后再试';
+      case DioExceptionType.connectionError:
+      case DioExceptionType.unknown:
+        return '网络连接失败';
+      case DioExceptionType.badResponse:
+        return '服务端错误 ${e.response?.statusCode ?? ""}';
+      case DioExceptionType.cancel:
+        return '请求已取消';
+      case DioExceptionType.badCertificate:
+        return '证书错误';
+    }
+  }
+
   Future<ApiResponse<T>> get<T>(String path, {
     Map<String, dynamic>? params,
     T Function(dynamic)? fromData,
-  }) async {
-    final resp = await _dio.get(path, queryParameters: params);
-    return ApiResponse.fromJson(resp.data, fromData);
-  }
+  }) =>
+      _request<T>(method: 'GET', path: path, params: params, fromData: fromData);
 
   Future<ApiResponse<T>> post<T>(String path, {
     Map<String, dynamic>? data,
     T Function(dynamic)? fromData,
-  }) async {
-    final resp = await _dio.post(path, data: data);
-    return ApiResponse.fromJson(resp.data, fromData);
-  }
+  }) =>
+      _request<T>(method: 'POST', path: path, data: data, fromData: fromData);
 
   Future<ApiResponse<T>> put<T>(String path, {
     Map<String, dynamic>? data,
     T Function(dynamic)? fromData,
-  }) async {
-    final resp = await _dio.put(path, data: data);
-    return ApiResponse.fromJson(resp.data, fromData);
-  }
+  }) =>
+      _request<T>(method: 'PUT', path: path, data: data, fromData: fromData);
 
-  /// POST multipart form data (for file uploads)
-  Future<dynamic> postFormData(String path, {required FormData formData}) async {
-    final resp = await _dio.post(path, data: formData);
-    return resp.data;
-  }
+  /// POST multipart form data (for file uploads)。和 post/get/put 一样统一兜底。
+  Future<ApiResponse<T>> postFormData<T>(String path, {
+    required FormData formData,
+    T Function(dynamic)? fromData,
+  }) =>
+      _request<T>(method: 'POST', path: path, data: formData, fromData: fromData);
 
   Future<ApiResponse<T>> send<T>(BaseReq req, {
     T Function(dynamic)? fromData,
