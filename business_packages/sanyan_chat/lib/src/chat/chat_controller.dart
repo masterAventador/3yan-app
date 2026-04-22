@@ -28,6 +28,7 @@ class ChatController extends GetxController {
   final inputController = TextEditingController();
   final scrollController = ScrollController();
   StreamSubscription? _wsSubscription;
+  StreamSubscription<PendingEntry>? _senderSub;
 
   final isRecording = false.obs;
   final isCancelling = false.obs;
@@ -46,6 +47,7 @@ class ChatController extends GetxController {
     super.onInit();
     _loadHistory();
     _listenWs();
+    _listenSender();
     ChatApi.markRead(conversation.id);
     // 通知首页：正在查看这个会话（延迟到 build 完成后执行，避免在 build 阶段触发 Obx 重建）
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -63,8 +65,24 @@ class ChatController extends GetxController {
         messages.value = resp.data!;
       }
     } finally {
+      _mergePendingFromSender();
       isLoading.value = false;
       _scrollToBottom();
+    }
+  }
+
+  /// 把 MessageSender 里当前会话的 pending 条目（sending / failed）
+  /// merge 到 messages 列表末尾——跨聊天页生命周期保持消息可见。
+  void _mergePendingFromSender() {
+    final pending = Get.find<MessageSender>().getPending(conversation.id);
+    for (final entry in pending) {
+      final msg = Message.fromJson(entry.messageJson);
+      // 历史接口返回的消息如果已经包含同 clientMsgId（不该发生，但防御），跳过
+      if (msg.clientMsgId != null &&
+          messages.any((m) => m.clientMsgId == msg.clientMsgId)) {
+        continue;
+      }
+      messages.add(msg);
     }
   }
 
@@ -87,11 +105,32 @@ class ChatController extends GetxController {
             ChatApi.markRead(conversation.id);
           }
           break;
-        case WsEventType.ack:
-          _onAck(event.clientMsgId);
-          break;
+        // ACK 由 MessageSender 处理，ChatController 通过 statusChanges 订阅
+        // 获得状态更新，不再自己处理 ack 事件。
       }
     });
+  }
+
+  void _listenSender() {
+    _senderSub =
+        Get.find<MessageSender>().statusChanges.listen(_onSenderStatusChange);
+  }
+
+  void _onSenderStatusChange(PendingEntry entry) {
+    if (entry.conversationId != conversation.id) return;
+    final idx = messages.indexWhere((m) => m.clientMsgId == entry.clientMsgId);
+    if (idx == -1) return; // 不在当前列表里（冷启后未 merge 等极端情况），忽略
+    final newStatus = _parseWireStatus(entry.messageJson['status'] as String?);
+    messages[idx].status = newStatus;
+    messages.refresh();
+  }
+
+  MessageStatus? _parseWireStatus(String? raw) {
+    if (raw == null) return null;
+    for (final s in MessageStatus.values) {
+      if (s.name == raw) return s;
+    }
+    return null;
   }
 
   void toggleInputMode() {
@@ -179,10 +218,8 @@ class ChatController extends GetxController {
     final text = inputController.text.trim();
     if (text.isEmpty) return;
 
-    final wsClient = Get.find<WsClient>();
-    final clientMsgId = wsClient.sendMessage(conversation.id, text);
-
-    messages.add(Message(
+    final clientMsgId = _uuid.v4();
+    final msg = Message(
       id: 0,
       conversationId: conversation.id,
       senderType: SenderType.user,
@@ -191,10 +228,20 @@ class ChatController extends GetxController {
       source: 'reply',
       createdAt: DateTime.now().toString(),
       clientMsgId: clientMsgId,
-    ));
+      // 关键：标 sending（之前一直 null，导致 UI 从不展示发送中/失败态）。
+      status: MessageStatus.sending,
+    );
+    messages.add(msg);
+    _scrollToBottom();
+
+    // 发送交给 MessageSender —— pending 追踪 / 超时 / 断线 / 持久化 由它兜底。
+    Get.find<MessageSender>().sendText(
+      conversationId: conversation.id,
+      clientMsgId: clientMsgId,
+      messageJson: msg.toJson(),
+    );
 
     inputController.clear();
-    _scrollToBottom();
   }
 
   /// Send voice message with optimistic UI + concurrent upload
@@ -222,12 +269,27 @@ class ChatController extends GetxController {
     _uploadAndSendVoice(msg);
   }
 
-  /// Retry failed voice message
-  Future<void> retryVoiceMessage(Message msg) async {
-    if (msg.localFilePath == null) return;
+  /// 重试一条失败的消息。把 Message 转回 PendingEntry 交给 MessageSender.retry，
+  /// Sender 会按 contentType 分派到 WsClient 对应 send 方法，重置 sendTimeMs，
+  /// 广播 statusChanges → ChatController 收到事件把 msg.status 切回 sending。
+  ///
+  /// 当前实现里这里先把 msg.status 置 sending 并 refresh UI——为了即时反馈，
+  /// 不等 statusChanges 事件回来。
+  void retryMessage(Message msg) {
+    if (msg.status != MessageStatus.failed) return;
+    final clientMsgId = msg.clientMsgId;
+    if (clientMsgId == null) return;
+
     msg.status = MessageStatus.sending;
     messages.refresh();
-    await _uploadAndSendVoice(msg);
+
+    final entry = PendingEntry(
+      clientMsgId: clientMsgId,
+      conversationId: msg.conversationId,
+      sendTimeMs: DateTime.now().millisecondsSinceEpoch,
+      messageJson: msg.toJson(),
+    );
+    Get.find<MessageSender>().retry(entry);
   }
 
   Future<void> _uploadAndSendVoice(Message msg) async {
@@ -240,20 +302,16 @@ class ChatController extends GetxController {
         _markFailed(msg);
         return;
       }
-
-      // 上传成功后立刻回写 mediaUrl + 标记为 sent，移除发送中 loading：
-      // COS 已有文件说明上传链路完成，WebSocket 的 ACK 只是双重确认，
-      // 等 ACK 会让 loading 一直不消失（ACK 偶发丢失时）。
+      // HTTP 上传成功但还没发给对端——status 保持 sending，
+      // 交给 MessageSender 跟踪 ACK，偶发 ACK 丢失由 30s 超时兜住。
       msg.mediaUrl = uploadResp.data!.url;
-      msg.status = MessageStatus.sent;
       messages.refresh();
-
-      final wsClient = Get.find<WsClient>();
-      wsClient.sendVoiceMessage(
+      Get.find<MessageSender>().sendVoice(
         conversationId: conversation.id,
+        clientMsgId: msg.clientMsgId!,
         mediaUrl: uploadResp.data!.url,
         duration: uploadResp.data!.duration,
-        clientMsgId: msg.clientMsgId,
+        messageJson: msg.toJson(),
       );
     } catch (e, stack) {
       debugPrint('[ChatController] _uploadAndSendVoice failed: $e\n$stack');
@@ -264,21 +322,6 @@ class ChatController extends GetxController {
   void _markFailed(Message msg) {
     msg.status = MessageStatus.failed;
     messages.refresh();
-  }
-
-  void _onAck(String? clientMsgId) {
-    if (clientMsgId == null) return;
-    final idx = messages.indexWhere((m) => m.clientMsgId == clientMsgId);
-    if (idx == -1) return;
-    final msg = messages[idx];
-    if (msg.status != MessageStatus.sending) return;
-
-    msg.status = MessageStatus.sent;
-    messages.refresh();
-
-    // 不立刻删除 localFilePath，ACK 之后仍保留本地文件作为播放兜底
-    // （即使 mediaUrl 暂时网络不通也能播自己的录音）。
-    // 7 天过期由 VoiceCacheManager.cleanupOldFiles 定期清理。
   }
 
   void _scrollToBottom() {
@@ -295,6 +338,7 @@ class ChatController extends GetxController {
   @override
   void onClose() {
     _wsSubscription?.cancel();
+    _senderSub?.cancel();
     inputController.dispose();
     scrollController.dispose();
     recorder.dispose();

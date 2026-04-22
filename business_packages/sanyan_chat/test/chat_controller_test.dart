@@ -16,6 +16,35 @@ class _FakeWsClient extends WsClient {
   Stream<WsEvent> get eventStream => const Stream.empty();
 }
 
+// extends MessageSender —— 走父构造，订阅的是 _FakeWsClient 的空 stream，
+// 测试里不会收到 WsEvent，所以 _onWsEvent / _onDisconnected 不会被触发。
+// 只 override sendText 记录调用，其他 Sender 行为保持父类实现即可。
+class _FakeMessageSender extends MessageSender {
+  final sentTexts = <Map<String, dynamic>>[];
+  final retriedEntries = <PendingEntry>[];
+
+  _FakeMessageSender(WsClient wsClient) : super(wsClient: wsClient);
+
+  @override
+  void sendText({
+    required int conversationId,
+    required String clientMsgId,
+    required Map<String, dynamic> messageJson,
+  }) {
+    sentTexts.add({
+      'conversationId': conversationId,
+      'clientMsgId': clientMsgId,
+      'messageJson': messageJson,
+    });
+  }
+
+  @override
+  void retry(PendingEntry entry) {
+    retriedEntries.add(entry);
+    entry.messageJson['status'] = MessageWireStatus.sending;
+  }
+}
+
 class _MockRecorder extends Mock implements IVoiceRecorder {}
 
 Conversation _fixtureConv() => Conversation(
@@ -220,6 +249,236 @@ void main() {
 
       expect(c.isRecording.value, false);
       verify(() => recorder.stop()).called(1);
+    });
+  });
+
+  group('ChatController.sendMessage', () {
+    setUpAll(() async {
+      final tmp = await Directory.systemTemp.createTemp('gs_test_');
+      const channel = MethodChannel('plugins.flutter.io/path_provider');
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async => tmp.path);
+      await LocalStorage.init();
+    });
+
+    tearDown(Get.reset);
+
+    test('delegates to MessageSender with status=sending', () {
+      final ws = _FakeWsClient();
+      Get.put<WsClient>(ws);
+      final sender = _FakeMessageSender(ws);
+      Get.put<MessageSender>(sender);
+
+      final c = ChatController(_fixtureConv(), recorder: _MockRecorder());
+      c.inputController.text = 'hello';
+      c.sendMessage();
+
+      expect(sender.sentTexts, hasLength(1));
+      final payload = sender.sentTexts.first;
+      expect(payload['conversationId'], 1);
+      final clientMsgId = payload['clientMsgId'] as String;
+      expect(clientMsgId, isNotEmpty);
+      final msgJson = payload['messageJson'] as Map<String, dynamic>;
+      expect(msgJson['content'], 'hello');
+      expect(msgJson['status'], 'sending');
+      expect(msgJson['clientMsgId'], clientMsgId);
+
+      expect(c.messages, hasLength(1));
+      expect(c.messages.first.content, 'hello');
+      expect(c.messages.first.status, MessageStatus.sending);
+      expect(c.messages.first.clientMsgId, clientMsgId);
+      expect(c.inputController.text, isEmpty);
+    });
+
+    test('empty text: no-op, nothing sent, no message added', () {
+      final ws = _FakeWsClient();
+      Get.put<WsClient>(ws);
+      final sender = _FakeMessageSender(ws);
+      Get.put<MessageSender>(sender);
+
+      final c = ChatController(_fixtureConv(), recorder: _MockRecorder());
+      c.inputController.text = '   ';
+      c.sendMessage();
+
+      expect(sender.sentTexts, isEmpty);
+      expect(c.messages, isEmpty);
+    });
+  });
+
+  group('ChatController.retryMessage', () {
+    setUpAll(() async {
+      final tmp = await Directory.systemTemp.createTemp('gs_test_');
+      const channel = MethodChannel('plugins.flutter.io/path_provider');
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async => tmp.path);
+      await LocalStorage.init();
+    });
+
+    tearDown(Get.reset);
+
+    test('failed text message delegates to Sender.retry + marks sending', () {
+      final ws = _FakeWsClient();
+      Get.put<WsClient>(ws);
+      final sender = _FakeMessageSender(ws);
+      Get.put<MessageSender>(sender);
+      final c = ChatController(_fixtureConv(), recorder: _MockRecorder());
+
+      final failedMsg = Message(
+        id: 0,
+        conversationId: 1,
+        senderType: SenderType.user,
+        contentType: ContentType.text,
+        content: 'hello',
+        source: 'reply',
+        createdAt: '2026-04-21',
+        clientMsgId: 'retry-a',
+        status: MessageStatus.failed,
+      );
+      c.messages.add(failedMsg);
+
+      c.retryMessage(failedMsg);
+
+      expect(sender.retriedEntries, hasLength(1));
+      expect(sender.retriedEntries.first.clientMsgId, 'retry-a');
+      expect(sender.retriedEntries.first.conversationId, 1);
+      expect(failedMsg.status, MessageStatus.sending);
+    });
+
+    test('non-failed message no-op', () {
+      final ws = _FakeWsClient();
+      Get.put<WsClient>(ws);
+      final sender = _FakeMessageSender(ws);
+      Get.put<MessageSender>(sender);
+      final c = ChatController(_fixtureConv(), recorder: _MockRecorder());
+
+      final sendingMsg = Message(
+        id: 0,
+        conversationId: 1,
+        senderType: SenderType.user,
+        contentType: ContentType.text,
+        content: 'hi',
+        source: 'reply',
+        createdAt: '2026-04-21',
+        clientMsgId: 'no-op',
+        status: MessageStatus.sending,
+      );
+      c.messages.add(sendingMsg);
+
+      c.retryMessage(sendingMsg);
+
+      expect(sender.retriedEntries, isEmpty);
+      expect(sendingMsg.status, MessageStatus.sending);
+    });
+
+    test('message without clientMsgId no-op', () {
+      final ws = _FakeWsClient();
+      Get.put<WsClient>(ws);
+      final sender = _FakeMessageSender(ws);
+      Get.put<MessageSender>(sender);
+      final c = ChatController(_fixtureConv(), recorder: _MockRecorder());
+
+      final bad = Message(
+        id: 0,
+        conversationId: 1,
+        senderType: SenderType.user,
+        contentType: ContentType.text,
+        content: 'hi',
+        source: 'reply',
+        createdAt: '2026-04-21',
+        clientMsgId: null,
+        status: MessageStatus.failed,
+      );
+      c.messages.add(bad);
+
+      c.retryMessage(bad);
+
+      expect(sender.retriedEntries, isEmpty);
+    });
+  });
+
+  group('Message.toJson / fromJson', () {
+    test('toJson includes status and clientMsgId', () {
+      final msg = Message(
+        id: 0,
+        conversationId: 1,
+        senderType: SenderType.user,
+        contentType: ContentType.text,
+        content: 'hi',
+        source: 'reply',
+        createdAt: '2026-04-20 00:00:00',
+        clientMsgId: 'cid-123',
+        status: MessageStatus.sending,
+      );
+
+      final json = msg.toJson();
+
+      expect(json['status'], 'sending');
+      expect(json['clientMsgId'], 'cid-123');
+      expect(json['content'], 'hi');
+    });
+
+    test('toJson with null status serializes null', () {
+      final msg = Message(
+        id: 1,
+        conversationId: 1,
+        senderType: SenderType.ai,
+        contentType: ContentType.text,
+        content: 'ok',
+        source: 'reply',
+        createdAt: '2026-04-20 00:00:00',
+      );
+
+      final json = msg.toJson();
+
+      expect(json['status'], isNull);
+      expect(json['clientMsgId'], isNull);
+    });
+
+    test('fromJson parses status and clientMsgId', () {
+      final msg = Message.fromJson({
+        'id': 0,
+        'conversationId': 1,
+        'senderType': 'user',
+        'contentType': 'text',
+        'content': 'hi',
+        'source': 'reply',
+        'createdAt': '2026-04-20',
+        'clientMsgId': 'cid-abc',
+        'status': 'failed',
+      });
+
+      expect(msg.status, MessageStatus.failed);
+      expect(msg.clientMsgId, 'cid-abc');
+    });
+
+    test('fromJson with missing status returns null status', () {
+      final msg = Message.fromJson({
+        'id': 1,
+        'conversationId': 1,
+        'senderType': 'ai',
+        'contentType': 'text',
+        'content': 'ok',
+        'source': 'reply',
+        'createdAt': '2026-04-20',
+      });
+
+      expect(msg.status, isNull);
+      expect(msg.clientMsgId, isNull);
+    });
+
+    test('fromJson with unknown status string returns null', () {
+      final msg = Message.fromJson({
+        'id': 1,
+        'conversationId': 1,
+        'senderType': 'ai',
+        'contentType': 'text',
+        'content': 'ok',
+        'source': 'reply',
+        'createdAt': '2026-04-20',
+        'status': 'bogus',
+      });
+
+      expect(msg.status, isNull);
     });
   });
 }

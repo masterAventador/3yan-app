@@ -11,3 +11,4 @@ export 'src/api/models/character.dart';
 export 'src/api/models/conversation.dart';
 export 'src/api/models/message.dart';
 export 'src/api/models/message_status.dart';
+export 'src/chat/widget/message_bubble_base.dart';

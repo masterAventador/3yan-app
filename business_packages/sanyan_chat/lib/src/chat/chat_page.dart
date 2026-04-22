@@ -81,7 +81,10 @@ class ChatPage extends StatelessWidget {
                         if (showTyping && index == c.messages.length) {
                           return const TypingIndicator();
                         }
-                        return MessageBubble(message: c.messages[index]);
+                        return MessageBubble(
+                          message: c.messages[index],
+                          onRetry: () => c.retryMessage(c.messages[index]),
+                        );
                       },
                     );
                   }),

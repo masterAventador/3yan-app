@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:uuid/uuid.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'app_constants.dart';
 import 'content_type.dart' as ct;
@@ -45,11 +44,34 @@ class WsClient extends GetxService {
   Timer? _reconnectTimer;
   bool _isConnected = false;
   int _reconnectAttempts = 0;
-  static const _maxReconnectAttempts = 20;
-  static const _uuid = Uuid();
+
+  /// 指数退避重连延迟序列：1s, 2s, 5s, 10s, 30s（之后一直 30s）。
+  static Duration reconnectDelayForAttempt(int attempt) {
+    const sequence = [1, 2, 5, 10, 30];
+    final idx = attempt < sequence.length ? attempt : sequence.length - 1;
+    return Duration(seconds: sequence[idx]);
+  }
 
   final _eventController = StreamController<WsEvent>.broadcast();
   Stream<WsEvent> get eventStream => _eventController.stream;
+
+  final _disconnectedController = StreamController<void>.broadcast();
+
+  /// 被动断开事件流：当底层 WebSocket 从连接状态转为断开时 fire。
+  ///
+  /// 触发路径：
+  ///   - stream `onDone`（对端关闭）
+  ///   - stream `onError`（IO 错误）
+  ///   - `_send` 时 sink 已关（写失败）
+  ///   - `connect()` 内 `runZonedGuarded` 捕获异常
+  ///
+  /// 订阅方（例如 MessageSender）用这个把 pending 消息标 failed。
+  /// 注意：主动调用 [disconnect] **不**触发此事件——主动断开时通常是
+  /// 应用退出流程，pending 消息的处理由 onClose 统一负责。
+  Stream<void> get onDisconnected => _disconnectedController.stream;
+
+  @visibleForTesting
+  void notifyDisconnectedForTest() => _disconnectedController.add(null);
 
   final isConnected = false.obs;
 
@@ -105,8 +127,12 @@ class WsClient extends GetxService {
     _channel = null;
   }
 
-  String sendMessage(int conversationId, String content, {String contentType = ct.ContentType.text}) {
-    final clientMsgId = _uuid.v4();
+  void sendMessage({
+    required int conversationId,
+    required String content,
+    required String clientMsgId,
+    String contentType = ct.ContentType.text,
+  }) {
     _send({
       'type': WsEventType.sendMessage,
       'conversationId': conversationId,
@@ -114,16 +140,14 @@ class WsClient extends GetxService {
       'content': content,
       'clientMsgId': clientMsgId,
     });
-    return clientMsgId;
   }
 
-  String sendVoiceMessage({
+  void sendVoiceMessage({
     required int conversationId,
     required String mediaUrl,
     required int duration,
-    String? clientMsgId,
+    required String clientMsgId,
   }) {
-    final msgId = clientMsgId ?? _uuid.v4();
     _send({
       'type': WsEventType.sendMessage,
       'conversationId': conversationId,
@@ -131,9 +155,8 @@ class WsClient extends GetxService {
       'content': '',
       'mediaUrl': mediaUrl,
       'duration': duration,
-      'clientMsgId': msgId,
+      'clientMsgId': clientMsgId,
     });
-    return msgId;
   }
 
   void syncMessages({int lastMsgId = 0}) {
@@ -183,7 +206,7 @@ class WsClient extends GetxService {
     buf.writeln('\n╔══════════════════════════════════════════════════════════════');
     buf.writeln('║ ❌ WS CONNECT FAILED');
     buf.writeln('║ Error: $error');
-    buf.writeln('║ 重连次数: $_reconnectAttempts / $_maxReconnectAttempts');
+    buf.writeln('║ 重连次数: $_reconnectAttempts');
     buf.writeln('╚══════════════════════════════════════════════════════════════');
     developer.log(buf.toString(), name: 'WS');
   }
@@ -231,6 +254,7 @@ class WsClient extends GetxService {
     if (!_isConnected && _channel == null) return; // 已经处理过了
     _cleanup();
     _scheduleReconnect();
+    _disconnectedController.add(null);
   }
 
   void _startHeartbeat() {
@@ -241,17 +265,8 @@ class WsClient extends GetxService {
   }
 
   void _scheduleReconnect() {
-    if (_reconnectAttempts >= _maxReconnectAttempts) {
-      // 达到上限后重置计数，延迟 60 秒再试，永不放弃
-      _reconnectAttempts = 0;
-      _reconnectTimer?.cancel();
-      _reconnectTimer = Timer(const Duration(seconds: 60), () {
-        connect();
-      });
-      return;
-    }
     _reconnectTimer?.cancel();
-    final delay = Duration(seconds: 2 * (_reconnectAttempts + 1));
+    final delay = reconnectDelayForAttempt(_reconnectAttempts);
     _reconnectTimer = Timer(delay, () {
       _reconnectAttempts++;
       connect();
@@ -262,6 +277,7 @@ class WsClient extends GetxService {
   void onClose() {
     disconnect();
     _eventController.close();
+    _disconnectedController.close();
     super.onClose();
   }
 }

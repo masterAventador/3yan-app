@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import 'package:sanyan_network/sanyan_network.dart';
 import '../../api/models/message.dart';
+import 'message_bubble_base.dart';
 import 'voice_bubble.dart';
 import 'video_bubble.dart';
 
@@ -18,7 +19,8 @@ double _maxBubbleWidth(BuildContext context) {
 
 class MessageBubble extends StatelessWidget {
   final Message message;
-  const MessageBubble({super.key, required this.message});
+  final VoidCallback? onRetry;
+  const MessageBubble({super.key, required this.message, this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +29,12 @@ class MessageBubble extends StatelessWidget {
     final maxW = _maxBubbleWidth(context);
 
     final avatar = _Avatar(isUser: isUser);
+
+    final Widget contentWidget = message.isVoice
+        ? VoiceBubble(message: message, maxWidth: maxW)
+        : isVideo
+            ? VideoBubble(isUser: isUser)
+            : _TextBubble(message: message, isUser: isUser);
 
     // Column 外层套 ConstrainedBox(maxWidth: maxW)：
     // Flexible 给的最大宽度是 "Row 宽 - 自己头像 - gap"（不含对面预留），
@@ -39,12 +47,12 @@ class MessageBubble extends StatelessWidget {
             isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (message.isVoice)
-            VoiceBubble(message: message, maxWidth: maxW)
-          else if (isVideo)
-            VideoBubble(isUser: isUser)
-          else
-            _TextBubble(message: message, isUser: isUser),
+          MessageBubbleBase(
+            isFromAi: !isUser,
+            status: message.status,
+            onRetry: onRetry,
+            child: contentWidget,
+          ),
           const SizedBox(height: 4),
           _Timestamp(message: message, isUser: isUser),
         ],
