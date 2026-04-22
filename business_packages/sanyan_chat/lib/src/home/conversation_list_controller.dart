@@ -82,6 +82,12 @@ class ConversationListController extends GetxController {
         } else {
           loadConversations();
         }
+      } else if (event.type == WsEventType.syncResult) {
+        // WS 连上 / 重连后服务端会推 sync_result（一次带回所有会话的新消息）。
+        // sync_result 的 payload 里只有 messages 没有 conversation meta，
+        // 这里把它当"WS 已就绪，可以重试 REST 了"的信号，触发一次会话列表重拉。
+        // 典型场景：冷启无网时首次 loadConversations 失败，WS 连上后自动补齐。
+        loadConversations();
       }
     });
   }

@@ -6,4 +6,5 @@ abstract class WsEventType {
   static const String typing = 'typing';
   static const String ack = 'ack';
   static const String sync = 'sync';
+  static const String syncResult = 'sync_result';
 }
