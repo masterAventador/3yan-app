@@ -1,5 +1,4 @@
 class AppConstants {
-  // Production server
-  static const String baseUrl = 'http://154.8.162.83';
-  static const String wsUrl = 'ws://154.8.162.83/ws';
+  static const String baseUrl = 'https://xuanbai.tech';
+  static const String wsUrl = 'wss://xuanbai.tech/ws';
 }

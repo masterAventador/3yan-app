@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -200,7 +199,7 @@ class WsClient extends GetxService {
     buf.writeln('║ 🔌 WS CONNECT');
     buf.writeln('║ URL: $uri');
     buf.writeln('╚══════════════════════════════════════════════════════════════');
-    developer.log(buf.toString(), name: 'WS');
+    debugPrint('[WS]${buf.toString()}');
   }
 
   void _logConnectError(Object error) {
@@ -211,7 +210,7 @@ class WsClient extends GetxService {
     buf.writeln('║ Error: $error');
     buf.writeln('║ 重连次数: $_reconnectAttempts');
     buf.writeln('╚══════════════════════════════════════════════════════════════');
-    developer.log(buf.toString(), name: 'WS');
+    debugPrint('[WS]${buf.toString()}');
   }
 
   void _logSend(Map<String, dynamic> data) {
@@ -225,7 +224,7 @@ class WsClient extends GetxService {
     buf.writeln('╠══════════════════════════════════════════════════════════════');
     buf.writeln(_prettyJson(data));
     buf.writeln('╚══════════════════════════════════════════════════════════════');
-    developer.log(buf.toString(), name: 'WS');
+    debugPrint('[WS]${buf.toString()}');
   }
 
   void _logReceive(Map<String, dynamic> data) {
@@ -237,7 +236,7 @@ class WsClient extends GetxService {
     buf.writeln('╠══════════════════════════════════════════════════════════════');
     buf.writeln(_prettyJson(data));
     buf.writeln('╚══════════════════════════════════════════════════════════════');
-    developer.log(buf.toString(), name: 'WS');
+    debugPrint('[WS]${buf.toString()}');
   }
 
   String _prettyJson(dynamic data) {

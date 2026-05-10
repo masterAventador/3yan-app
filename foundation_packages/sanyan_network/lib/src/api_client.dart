@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'api_response.dart';
@@ -65,7 +64,7 @@ class ApiClient {
     buf.writeln('╚══════════════════════════════════════════════════════════════');
 
     if (kDebugMode) {
-      developer.log(buf.toString(), name: 'HTTP');
+      debugPrint('[HTTP]${buf.toString()}');
     }
   }
 
@@ -85,7 +84,7 @@ class ApiClient {
     buf.writeln('╚══════════════════════════════════════════════════════════════');
 
     if (kDebugMode) {
-      developer.log(buf.toString(), name: 'HTTP', error: err);
+      debugPrint('[HTTP]${buf.toString()}');
     }
   }
 

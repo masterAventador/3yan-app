@@ -17,7 +17,7 @@ final _playingVoiceFinder = find.byWidgetPredicate((w) {
 
 /// E2E 全流程测试：登录 → 进入聊天 → 发消息 → 收 AI 语音回复 → 点击播放 → 等播放完成
 ///
-/// 服务器: http://154.8.162.83
+/// 服务器: https://xuanbai.tech
 /// 账号: 13900001111 / 123456（预置测试账号）
 ///
 /// 等某个 widget 出现，每 100ms pump 一次，到了立即返回。
