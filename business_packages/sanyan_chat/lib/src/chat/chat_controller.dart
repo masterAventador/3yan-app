@@ -45,6 +45,11 @@ class ChatController extends GetxController {
           if (event.clientMsgId != null) {
             final msg = _pending.remove(event.clientMsgId);
             if (msg != null) {
+              // 用 server 落库的真实 id 替换本地临时负数 id，
+              // 避免 cold start sync 拉历史时同一条 user 消息因 id 不同显示两遍
+              if (event.serverMsgId != null) {
+                msg.id = event.serverMsgId!;
+              }
               msg.status = MessageStatus.sent;
               messages.refresh();
             }
@@ -68,6 +73,8 @@ class ChatController extends GetxController {
                 messages.add(msg);
               }
             }
+            // 按 id 排序兜底：sync 拉回来的历史和已有列表合并后顺序可能乱
+            messages.sort((a, b) => a.id.compareTo(b.id));
             _scrollToBottom();
           }
           break;

@@ -12,14 +12,16 @@ class WsEvent {
   final String type;
   final Map<String, dynamic>? message;
   final String? clientMsgId;
+  final int? serverMsgId;
   final List<dynamic>? messages;
 
-  WsEvent({required this.type, this.message, this.clientMsgId, this.messages});
+  WsEvent({required this.type, this.message, this.clientMsgId, this.serverMsgId, this.messages});
 
   factory WsEvent.fromJson(Map<String, dynamic> json) => WsEvent(
     type: json['type'] ?? '',
     message: json['message'] is Map<String, dynamic> ? json['message'] : null,
     clientMsgId: json['clientMsgId'],
+    serverMsgId: json['serverMsgId'],
     messages: json['messages'],
   );
 }
