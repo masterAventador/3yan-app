@@ -82,12 +82,18 @@ class ChatController extends GetxController {
     });
   }
 
+  /// 临时消息 id 用大正数（1e15 + timestamp），确保按 id 排序时仍排在末尾，
+  /// 不会被排到列表顶部消失在用户视野外。收到 ack 后会被 serverMsgId 替换为真实小数。
+  static const int _tempIdBase = 1000000000000000;
+
+  int _nextTempId() => _tempIdBase + DateTime.now().millisecondsSinceEpoch;
+
   void sendMessage() {
     final text = inputController.text.trim();
     if (text.isEmpty) return;
     final clientMsgId = _uuid.v4();
     final tempMsg = Message(
-      id: -DateTime.now().millisecondsSinceEpoch,
+      id: _nextTempId(),
       senderType: SenderType.user,
       content: text,
       createdAt: DateTime.now().toIso8601String(),
@@ -96,7 +102,11 @@ class ChatController extends GetxController {
     );
     _pending[clientMsgId] = tempMsg;
     messages.add(tempMsg);
-    Get.find<WsClient>().sendMessage(content: text, clientMsgId: clientMsgId);
+    final ok = Get.find<WsClient>().sendMessage(content: text, clientMsgId: clientMsgId);
+    if (!ok) {
+      // WS 断开 / 写入失败：立即标 failed，等用户点重试
+      _markFailed(clientMsgId);
+    }
     inputController.clear();
     _scrollToBottom();
   }
@@ -106,7 +116,18 @@ class ChatController extends GetxController {
     msg.status = MessageStatus.sending;
     messages.refresh();
     _pending[msg.clientMsgId!] = msg;
-    Get.find<WsClient>().sendMessage(content: msg.content, clientMsgId: msg.clientMsgId!);
+    final ok = Get.find<WsClient>().sendMessage(content: msg.content, clientMsgId: msg.clientMsgId!);
+    if (!ok) {
+      _markFailed(msg.clientMsgId!);
+    }
+  }
+
+  void _markFailed(String clientMsgId) {
+    final msg = _pending.remove(clientMsgId);
+    if (msg != null) {
+      msg.status = MessageStatus.failed;
+      messages.refresh();
+    }
   }
 
   void _scrollToBottom() {
