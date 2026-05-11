@@ -1,0 +1,48 @@
+name: sanyan_app
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  get: ^4.6.6
+
+  # Foundation packages
+  sanyan_common_ui:
+    path: foundation_packages/sanyan_common_ui
+  sanyan_routes:
+    path: foundation_packages/sanyan_routes
+  sanyan_network:
+    path: foundation_packages/sanyan_network
+  sanyan_user:
+    path: foundation_packages/sanyan_user
+
+  # Business packages
+  sanyan_auth:
+    path: business_packages/sanyan_auth
+  sanyan_chat:
+    path: business_packages/sanyan_chat
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  mockito: ^5.4.4
+  build_runner: ^2.4.9
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  fonts:
+    - family: Manrope
+      fonts:
+        - asset: fonts/Manrope-VariableFont_wght.ttf
+    - family: Inter
+      fonts:
+        - asset: fonts/Inter-VariableFont.ttf

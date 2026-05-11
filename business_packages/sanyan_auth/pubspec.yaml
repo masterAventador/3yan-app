@@ -1,0 +1,28 @@
+name: sanyan_auth
+description: Auth business module (login, register, splash)
+publish_to: 'none'
+
+environment:
+  sdk: ^3.11.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  get: ^4.6.6
+  sanyan_network:
+    path: ../../foundation_packages/sanyan_network
+  sanyan_user:
+    path: ../../foundation_packages/sanyan_user
+  sanyan_common_ui:
+    path: ../../foundation_packages/sanyan_common_ui
+  sanyan_routes:
+    path: ../../foundation_packages/sanyan_routes
+
+flutter:
+  assets:
+    - assets/images/
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
