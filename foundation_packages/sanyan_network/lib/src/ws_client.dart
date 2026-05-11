@@ -93,8 +93,10 @@ class WsClient extends GetxService {
     _channel = null;
   }
 
-  void sendMessage({required String content, required String clientMsgId}) {
-    _send({
+  /// 返回 true 表示成功写入 channel；false 表示 WS 断开或写入失败。
+  /// 注意：true 不保证 server 真收到（需要等 ack 确认），只保证 client → channel 这一段没问题。
+  bool sendMessage({required String content, required String clientMsgId}) {
+    return _send({
       'type': WsEventType.sendMessage,
       'content': content,
       'clientMsgId': clientMsgId,
@@ -105,13 +107,15 @@ class WsClient extends GetxService {
     _send({'type': WsEventType.sync, 'lastMsgId': lastMsgId});
   }
 
-  void _send(Map<String, dynamic> data) {
-    if (!_isConnected || _channel == null) return;
+  bool _send(Map<String, dynamic> data) {
+    if (!_isConnected || _channel == null) return false;
     try {
       _channel!.sink.add(jsonEncode(data));
       _logSend(data);
+      return true;
     } catch (e) {
       _onDisconnected();
+      return false;
     }
   }
 
