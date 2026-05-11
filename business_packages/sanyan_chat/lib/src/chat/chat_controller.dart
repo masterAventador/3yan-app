@@ -19,6 +19,11 @@ class ChatController extends GetxController {
   /// 跟踪 sending 消息：clientMsgId → temp Message。ack 后从此 Map 找回来标 sent。
   final _pending = <String, Message>{};
 
+  /// 每条 sending 消息的超时计时器（clientMsgId → Timer），
+  /// 收到 ack 取消，超时未 ack 自动标 failed。
+  final _timeouts = <String, Timer>{};
+  static const _sendTimeout = Duration(seconds: 10);
+
   @override
   void onInit() {
     super.onInit();
@@ -43,10 +48,11 @@ class ChatController extends GetxController {
       switch (event.type) {
         case WsEventType.ack:
           if (event.clientMsgId != null) {
+            _timeouts.remove(event.clientMsgId)?.cancel();
             final msg = _pending.remove(event.clientMsgId);
             if (msg != null) {
-              // 用 server 落库的真实 id 替换本地临时负数 id，
-              // 避免 cold start sync 拉历史时同一条 user 消息因 id 不同显示两遍
+              // 用 server 落库的真实 id 替换本地临时 id，避免 cold start sync
+              // 拉历史时同一条 user 消息因 id 不同显示两遍
               if (event.serverMsgId != null) {
                 msg.id = event.serverMsgId!;
               }
@@ -73,8 +79,10 @@ class ChatController extends GetxController {
                 messages.add(msg);
               }
             }
-            // 按 id 排序兜底：sync 拉回来的历史和已有列表合并后顺序可能乱
-            messages.sort((a, b) => a.id.compareTo(b.id));
+            // 按 createdAt 时间序排序（ISO 8601 字符串字典序 == 时间序）。
+            // 不能按 id 排——因为 sending/failed 临时消息的 id 跟 server 端
+            // 已 ack 消息的 id 不可比（用户视觉时间和 server 落库顺序不一定一致）。
+            messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
             _scrollToBottom();
           }
           break;
@@ -102,11 +110,7 @@ class ChatController extends GetxController {
     );
     _pending[clientMsgId] = tempMsg;
     messages.add(tempMsg);
-    final ok = Get.find<WsClient>().sendMessage(content: text, clientMsgId: clientMsgId);
-    if (!ok) {
-      // WS 断开 / 写入失败：立即标 failed，等用户点重试
-      _markFailed(clientMsgId);
-    }
+    _dispatchSend(clientMsgId, text);
     inputController.clear();
     _scrollToBottom();
   }
@@ -116,13 +120,24 @@ class ChatController extends GetxController {
     msg.status = MessageStatus.sending;
     messages.refresh();
     _pending[msg.clientMsgId!] = msg;
-    final ok = Get.find<WsClient>().sendMessage(content: msg.content, clientMsgId: msg.clientMsgId!);
+    _dispatchSend(msg.clientMsgId!, msg.content);
+  }
+
+  /// 真正向 WS 投递 + 启动超时计时。失败立即标 failed，成功启动 10s timer 等 ack。
+  void _dispatchSend(String clientMsgId, String content) {
+    final ok = Get.find<WsClient>().sendMessage(content: content, clientMsgId: clientMsgId);
     if (!ok) {
-      _markFailed(msg.clientMsgId!);
+      // WS 断开 / 写入失败：立即标 failed，等用户点重试
+      _markFailed(clientMsgId);
+      return;
     }
+    // sink.add 成功不代表 server 真收到（可能 sink 已写但 server 没处理就断）。
+    // 启动 10s 超时，超时还没收到 ack 就当失败。
+    _timeouts[clientMsgId] = Timer(_sendTimeout, () => _markFailed(clientMsgId));
   }
 
   void _markFailed(String clientMsgId) {
+    _timeouts.remove(clientMsgId)?.cancel();
     final msg = _pending.remove(clientMsgId);
     if (msg != null) {
       msg.status = MessageStatus.failed;
@@ -145,6 +160,10 @@ class ChatController extends GetxController {
   @override
   void onClose() {
     _wsSub?.cancel();
+    for (final t in _timeouts.values) {
+      t.cancel();
+    }
+    _timeouts.clear();
     inputController.dispose();
     scrollController.dispose();
     super.onClose();
