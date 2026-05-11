@@ -2,7 +2,10 @@ import 'package:sanyan_network/sanyan_network.dart';
 import 'message_status.dart';
 
 class Message {
-  final int id;
+  /// 服务端落库后的真实 id。
+  /// 本地发出但还没收到 ack 时是临时负数（避免和 server id 冲突），
+  /// 收到 ack 后用 serverMsgId 替换为正数。
+  int id;
   final String senderType;
   final String content;
   final String createdAt;
