@@ -17,12 +17,15 @@ class ChatController extends GetxController {
   static const _uuid = Uuid();
 
   /// 跟踪 sending 消息：clientMsgId → temp Message。ack 后从此 Map 找回来标 sent。
+  /// 超时判定基于 Message.createdAt（发消息时记录）。
   final _pending = <String, Message>{};
 
-  /// 每条 sending 消息的超时计时器（clientMsgId → Timer），
-  /// 收到 ack 取消，超时未 ack 自动标 failed。
-  final _timeouts = <String, Timer>{};
+  /// 单 Timer 周期扫描 _pending，超时（10s 未收到 ack）的整体标 failed。
+  /// _pending 非空时懒启动；空了自动停。每发一条消息开 N 个 Timer 太重，
+  /// 单 Timer 扫描精度损失最多一个扫描周期（2s）—— 对聊天体感差几秒无感。
+  Timer? _scanTimer;
   static const _sendTimeout = Duration(seconds: 10);
+  static const _scanInterval = Duration(seconds: 2);
 
   @override
   void onInit() {
@@ -48,7 +51,6 @@ class ChatController extends GetxController {
       switch (event.type) {
         case WsEventType.ack:
           if (event.clientMsgId != null) {
-            _timeouts.remove(event.clientMsgId)?.cancel();
             final msg = _pending.remove(event.clientMsgId);
             if (msg != null) {
               // 用 server 落库的真实 id 替换本地临时 id，避免 cold start sync
@@ -59,6 +61,7 @@ class ChatController extends GetxController {
               msg.status = MessageStatus.sent;
               messages.refresh();
             }
+            _stopScanIfIdle();
           }
           break;
         case WsEventType.typing:
@@ -123,7 +126,7 @@ class ChatController extends GetxController {
     _dispatchSend(msg.clientMsgId!, msg.content);
   }
 
-  /// 真正向 WS 投递 + 启动超时计时。失败立即标 failed，成功启动 10s timer 等 ack。
+  /// 真正向 WS 投递。失败立即标 failed；成功则确保扫描 Timer 在跑（等 ack 或超时）。
   void _dispatchSend(String clientMsgId, String content) {
     final ok = Get.find<WsClient>().sendMessage(content: content, clientMsgId: clientMsgId);
     if (!ok) {
@@ -131,17 +134,50 @@ class ChatController extends GetxController {
       _markFailed(clientMsgId);
       return;
     }
-    // sink.add 成功不代表 server 真收到（可能 sink 已写但 server 没处理就断）。
-    // 启动 10s 超时，超时还没收到 ack 就当失败。
-    _timeouts[clientMsgId] = Timer(_sendTimeout, () => _markFailed(clientMsgId));
+    // sink.add 成功不代表 server 真收到。让扫描 Timer 在背景检测超时。
+    _ensureScanTimer();
   }
 
   void _markFailed(String clientMsgId) {
-    _timeouts.remove(clientMsgId)?.cancel();
     final msg = _pending.remove(clientMsgId);
     if (msg != null) {
       msg.status = MessageStatus.failed;
       messages.refresh();
+    }
+    _stopScanIfIdle();
+  }
+
+  /// _pending 非空且 Timer 未跑时启动周期扫描。已在跑就不重复启。
+  void _ensureScanTimer() {
+    if (_scanTimer != null) return;
+    if (_pending.isEmpty) return;
+    _scanTimer = Timer.periodic(_scanInterval, (_) => _scanTimeouts());
+  }
+
+  /// _pending 空了就停 Timer，避免空转省电。
+  void _stopScanIfIdle() {
+    if (_pending.isEmpty) {
+      _scanTimer?.cancel();
+      _scanTimer = null;
+    }
+  }
+
+  /// 扫一遍 _pending，把发送时间超过 _sendTimeout 的标 failed。
+  void _scanTimeouts() {
+    if (_pending.isEmpty) {
+      _stopScanIfIdle();
+      return;
+    }
+    final now = DateTime.now();
+    final timedOut = <String>[];
+    for (final entry in _pending.entries) {
+      final sentAt = DateTime.tryParse(entry.value.createdAt);
+      if (sentAt != null && now.difference(sentAt) > _sendTimeout) {
+        timedOut.add(entry.key);
+      }
+    }
+    for (final clientMsgId in timedOut) {
+      _markFailed(clientMsgId);
     }
   }
 
@@ -160,10 +196,8 @@ class ChatController extends GetxController {
   @override
   void onClose() {
     _wsSub?.cancel();
-    for (final t in _timeouts.values) {
-      t.cancel();
-    }
-    _timeouts.clear();
+    _scanTimer?.cancel();
+    _scanTimer = null;
     inputController.dispose();
     scrollController.dispose();
     super.onClose();
