@@ -6,7 +6,7 @@ import 'package:sanyan_user/sanyan_user.dart';
 
 class LoginController extends GetxController {
   final phoneController = TextEditingController(text: '13900001111');
-  final passwordController = TextEditingController(text: '123456');
+  final passwordController = TextEditingController(text: '111111');
   final isLoading = false.obs;
   final obscurePassword = true.obs;
 
@@ -43,7 +43,7 @@ class LoginController extends GetxController {
         LocalStorage.token = resp.data!['token'];
         LocalStorage.userId = resp.data!['userId'];
         Get.find<WsClient>().connect();
-        Get.offAllNamed(AppRoutes.home);
+        Get.offAllNamed(AppRoutes.chat);
       } else {
         Get.snackbar('登录失败', resp.errMsg ?? '未知错误');
       }

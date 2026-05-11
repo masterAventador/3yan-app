@@ -11,11 +11,10 @@ class SplashPage extends StatelessWidget {
   Widget build(BuildContext context) {
     Get.put(WsClient(), permanent: true);
 
-    // TODO: 对接极光/个推 SDK 后，在此获取 push token 并调用 DeviceApi.updatePushToken()
     Future.delayed(const Duration(milliseconds: 500), () {
       if (LocalStorage.token != null) {
         Get.find<WsClient>().connect();
-        Get.offAllNamed(AppRoutes.home);
+        Get.offAllNamed(AppRoutes.chat);
       } else {
         Get.offAllNamed(AppRoutes.login);
       }
@@ -23,10 +22,7 @@ class SplashPage extends StatelessWidget {
 
     return const Scaffold(
       body: Center(
-        child: Text(
-          '三言',
-          style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
-        ),
+        child: Text('三言', style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
       ),
     );
   }

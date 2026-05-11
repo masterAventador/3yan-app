@@ -2,7 +2,6 @@ import 'package:sanyan_network/sanyan_network.dart';
 import 'req/send_sms_req.dart';
 import 'req/register_req.dart';
 import 'req/login_req.dart';
-import 'req/reset_password_req.dart';
 
 abstract class AuthApi {
   static final _client = ApiClient();
@@ -29,11 +28,4 @@ abstract class AuthApi {
         LoginReq(phone: phone, password: password),
         fromData: (d) => d as Map<String, dynamic>,
       );
-
-  static Future<ApiResponse> resetPassword({
-    required String phone,
-    required String code,
-    required String newPassword,
-  }) =>
-      _client.send(ResetPasswordReq(phone: phone, code: code, newPassword: newPassword));
 }

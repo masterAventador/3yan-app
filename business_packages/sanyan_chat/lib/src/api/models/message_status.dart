@@ -1,5 +1,5 @@
 enum MessageStatus {
-  sending, // 正在上传/发送
-  sent, // 发送成功
+  sending, // 等 server ack
+  sent, // 已 ack
   failed, // 发送失败
 }

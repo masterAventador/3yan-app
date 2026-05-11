@@ -1,86 +1,14 @@
-import 'package:dio/dio.dart';
 import 'package:sanyan_network/sanyan_network.dart';
-import 'models/character.dart';
-import 'models/conversation.dart';
 import 'models/message.dart';
-import 'req/list_characters_req.dart';
-import 'req/get_character_req.dart';
-import 'req/list_conversations_req.dart';
 import 'req/list_messages_req.dart';
-import 'req/mark_read_req.dart';
 
 abstract class ChatApi {
   static final _client = ApiClient();
 
-  // Character
-  static Future<ApiResponse<List<Character>>> listCharacters() => _client.send(
-    ListCharactersReq(),
-    fromData: (d) => (d as List).map((e) => Character.fromJson(e)).toList(),
-  );
-
-  static Future<ApiResponse<Character>> getCharacter(int id) => _client.send(
-    GetCharacterReq(id: id),
-    fromData: (d) => Character.fromJson(d),
-  );
-
-  // Conversation
-  static Future<ApiResponse<List<Conversation>>> listConversations() =>
+  /// 拉取历史消息（按时间正序）
+  static Future<ApiResponse<List<Message>>> listMessages({int? beforeId, int limit = 20}) =>
       _client.send(
-        ListConversationsReq(),
-        fromData: (d) =>
-            (d as List).map((e) => Conversation.fromJson(e)).toList(),
-      );
-
-  static Future<ApiResponse<List<Message>>> listMessages(
-    int convId, {
-    int? beforeId,
-    int limit = 20,
-  }) => _client.send(
-    ListMessagesReq(conversationId: convId, beforeId: beforeId, limit: limit),
-    fromData: (d) => (d as List).map((e) => Message.fromJson(e)).toList(),
-  );
-
-  static Future<ApiResponse> markRead(int convId) =>
-      _client.send(MarkReadReq(conversationId: convId));
-
-  /// Upload voice file to server, returns COS URL and duration
-  static Future<ApiResponse<VoiceUploadResult>> uploadVoice(
-    String localFilePath, {
-    required int duration,
-  }) async {
-    try {
-      final formData = FormData.fromMap({
-        // 从本地文件路径提取真实后缀传给服务端（服务端根据后缀决定 COS key 和 content-type）
-        'file': await MultipartFile.fromFile(
-          localFilePath,
-          filename:
-              'voice${localFilePath.substring(localFilePath.lastIndexOf('.'))}',
-        ),
-        'type': ContentType.voice,
-        'duration': duration,
-      });
-      return _client.postFormData<VoiceUploadResult>(
-        '/api/media/upload',
-        formData: formData,
-        fromData: (data) => VoiceUploadResult.fromJson(data as Map<String, dynamic>),
-      );
-    } catch (e) {
-      // 仅覆盖 FormData 构造阶段的本地 IO 异常（文件不存在等）。
-      // 网络/dio 异常已由 ApiClient._request 内部兜底。
-      return ApiResponse(success: false, errMsg: '上传失败: $e');
-    }
-  }
-}
-
-class VoiceUploadResult {
-  final String url;
-  final int duration;
-
-  VoiceUploadResult({required this.url, required this.duration});
-
-  factory VoiceUploadResult.fromJson(Map<String, dynamic> json) =>
-      VoiceUploadResult(
-        url: json['url'] ?? '',
-        duration: json['duration'] ?? 0,
+        ListMessagesReq(beforeId: beforeId, limit: limit),
+        fromData: (d) => (d as List).map((e) => Message.fromJson(e)).toList(),
       );
 }

@@ -4,36 +4,23 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'app_constants.dart';
-import 'content_type.dart' as ct;
 import 'ws_event_type.dart';
 
-/// Provides the token for WebSocket connections.
-/// Must be set before calling [WsClient.connect].
 typedef WsTokenProvider = String? Function();
 
 class WsEvent {
   final String type;
-  final int? conversationId;
   final Map<String, dynamic>? message;
   final String? clientMsgId;
-  final int? serverMsgId;
   final List<dynamic>? messages;
-  final bool? hasMore;
 
-  WsEvent({
-    required this.type, this.conversationId, this.message,
-    this.clientMsgId, this.serverMsgId, this.messages, this.hasMore,
-  });
+  WsEvent({required this.type, this.message, this.clientMsgId, this.messages});
 
   factory WsEvent.fromJson(Map<String, dynamic> json) => WsEvent(
     type: json['type'] ?? '',
-    conversationId: json['conversationId'] ??
-        (json['message'] is Map ? json['message']['conversationId'] : null),
     message: json['message'] is Map<String, dynamic> ? json['message'] : null,
     clientMsgId: json['clientMsgId'],
-    serverMsgId: json['serverMsgId'],
     messages: json['messages'],
-    hasMore: json['hasMore'],
   );
 }
 
@@ -54,31 +41,11 @@ class WsClient extends GetxService {
   final _eventController = StreamController<WsEvent>.broadcast();
   Stream<WsEvent> get eventStream => _eventController.stream;
 
-  final _disconnectedController = StreamController<void>.broadcast();
-
-  /// 被动断开事件流：当底层 WebSocket 从连接状态转为断开时 fire。
-  ///
-  /// 触发路径：
-  ///   - stream `onDone`（对端关闭）
-  ///   - stream `onError`（IO 错误）
-  ///   - `_send` 时 sink 已关（写失败）
-  ///   - `connect()` 内 `runZonedGuarded` 捕获异常
-  ///
-  /// 订阅方（例如 MessageSender）用这个把 pending 消息标 failed。
-  /// 注意：主动调用 [disconnect] **不**触发此事件——主动断开时通常是
-  /// 应用退出流程，pending 消息的处理由 onClose 统一负责。
-  Stream<void> get onDisconnected => _disconnectedController.stream;
-
-  @visibleForTesting
-  void notifyDisconnectedForTest() => _disconnectedController.add(null);
-
   final isConnected = false.obs;
 
-  /// Set this to provide the auth token for WebSocket connections.
   static WsTokenProvider? tokenProvider;
 
   Future<void> connect() async {
-    // 先清理旧连接，防止重复监听
     _cleanup();
 
     final token = tokenProvider?.call();
@@ -89,10 +56,6 @@ class WsClient extends GetxService {
 
     try {
       _channel = WebSocketChannel.connect(uri);
-      // WebSocketChannel.connect 是惰性的，真正的 WS handshake 在这里等。
-      // handshake 失败（断网、服务端拒连）会抛异常，走下面的 catch → _onDisconnected
-      // → _scheduleReconnect，计数递增进入退避序列。
-      // ready 成功才意味着链路真通了，这时重置计数才合理。
       await _channel!.ready;
 
       _channel!.stream.listen(
@@ -118,7 +81,6 @@ class WsClient extends GetxService {
     _cleanup();
   }
 
-  /// 清理连接资源，不触发重连
   void _cleanup() {
     _heartbeatTimer?.cancel();
     _isConnected = false;
@@ -129,34 +91,10 @@ class WsClient extends GetxService {
     _channel = null;
   }
 
-  void sendMessage({
-    required int conversationId,
-    required String content,
-    required String clientMsgId,
-    String contentType = ct.ContentType.text,
-  }) {
+  void sendMessage({required String content, required String clientMsgId}) {
     _send({
       'type': WsEventType.sendMessage,
-      'conversationId': conversationId,
-      'contentType': contentType,
       'content': content,
-      'clientMsgId': clientMsgId,
-    });
-  }
-
-  void sendVoiceMessage({
-    required int conversationId,
-    required String mediaUrl,
-    required int duration,
-    required String clientMsgId,
-  }) {
-    _send({
-      'type': WsEventType.sendMessage,
-      'conversationId': conversationId,
-      'contentType': ct.ContentType.voice,
-      'content': '',
-      'mediaUrl': mediaUrl,
-      'duration': duration,
       'clientMsgId': clientMsgId,
     });
   }
@@ -168,11 +106,9 @@ class WsClient extends GetxService {
   void _send(Map<String, dynamic> data) {
     if (!_isConnected || _channel == null) return;
     try {
-      final payload = jsonEncode(data);
-      _channel!.sink.add(payload);
+      _channel!.sink.add(jsonEncode(data));
       _logSend(data);
     } catch (e) {
-      // sink 已关闭，触发重连
       _onDisconnected();
     }
   }
@@ -183,13 +119,13 @@ class WsClient extends GetxService {
       if (json['type'] == WsEventType.pong) return;
       _logReceive(json);
       _eventController.add(WsEvent.fromJson(json));
-    } catch (e) {
-      // ignore malformed messages
+    } catch (_) {
+      // 忽略畸形消息
     }
   }
 
   // ─────────────────────────────────────────────────────────────
-  // 日志输出
+  // 日志
   // ─────────────────────────────────────────────────────────────
 
   void _logConnect(Uri uri) {
@@ -215,12 +151,10 @@ class WsClient extends GetxService {
 
   void _logSend(Map<String, dynamic> data) {
     if (!kDebugMode) return;
-    // ping 太频繁，跳过
     if (data['type'] == WsEventType.ping) return;
     final buf = StringBuffer();
     buf.writeln('\n╔══════════════════════════════════════════════════════════════');
-    buf.writeln('║ 🔺 WS SEND');
-    buf.writeln('║ Type: ${data['type']}');
+    buf.writeln('║ 🔺 WS SEND  Type: ${data['type']}');
     buf.writeln('╠══════════════════════════════════════════════════════════════');
     buf.writeln(_prettyJson(data));
     buf.writeln('╚══════════════════════════════════════════════════════════════');
@@ -231,8 +165,7 @@ class WsClient extends GetxService {
     if (!kDebugMode) return;
     final buf = StringBuffer();
     buf.writeln('\n╔══════════════════════════════════════════════════════════════');
-    buf.writeln('║ 🔻 WS RECV');
-    buf.writeln('║ Type: ${data['type']}');
+    buf.writeln('║ 🔻 WS RECV  Type: ${data['type']}');
     buf.writeln('╠══════════════════════════════════════════════════════════════');
     buf.writeln(_prettyJson(data));
     buf.writeln('╚══════════════════════════════════════════════════════════════');
@@ -243,8 +176,7 @@ class WsClient extends GetxService {
     final raw = () {
       if (data == null) return 'null';
       try {
-        const encoder = JsonEncoder.withIndent('  ');
-        return encoder.convert(data);
+        return const JsonEncoder.withIndent('  ').convert(data);
       } catch (_) {
         return data.toString();
       }
@@ -253,10 +185,9 @@ class WsClient extends GetxService {
   }
 
   void _onDisconnected() {
-    if (!_isConnected && _channel == null) return; // 已经处理过了
+    if (!_isConnected && _channel == null) return;
     _cleanup();
     _scheduleReconnect();
-    _disconnectedController.add(null);
   }
 
   void _startHeartbeat() {
@@ -279,7 +210,6 @@ class WsClient extends GetxService {
   void onClose() {
     disconnect();
     _eventController.close();
-    _disconnectedController.close();
     super.onClose();
   }
 }

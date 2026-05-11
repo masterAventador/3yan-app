@@ -11,10 +11,6 @@ dependencies:
   flutter:
     sdk: flutter
   get: ^4.6.6
-  audioplayers: ^6.1.0
-  record: ^5.1.2
-  permission_handler: ^11.3.1
-  path_provider: ^2.1.3
 
   # Foundation packages
   sanyan_common_ui:
@@ -31,17 +27,6 @@ dependencies:
     path: business_packages/sanyan_auth
   sanyan_chat:
     path: business_packages/sanyan_chat
-  sanyan_contacts:
-    path: business_packages/sanyan_contacts
-  sanyan_settings:
-    path: business_packages/sanyan_settings
-  sanyan_status:
-    path: business_packages/sanyan_status
-
-dependency_overrides:
-  # record 5.2.1 要求 record_platform_interface 1.5.0，但 record_linux 0.7.2 不兼容
-  # 强制使用更高版本的 record_linux
-  record_linux: ^1.0.0
 
 dev_dependencies:
   flutter_test:

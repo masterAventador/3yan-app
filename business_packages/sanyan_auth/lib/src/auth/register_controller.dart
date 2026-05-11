@@ -20,10 +20,7 @@ class RegisterController extends GetxController {
     return null;
   }
 
-  String? validateCode(String code) {
-    if (code.isEmpty) return '请输入验证码';
-    return null;
-  }
+  String? validateCode(String code) => code.isEmpty ? '请输入验证码' : null;
 
   String? validatePassword(String password) {
     if (password.isEmpty) return '请输入密码';
@@ -38,7 +35,6 @@ class RegisterController extends GetxController {
       Get.snackbar('提示', phoneError);
       return;
     }
-
     try {
       final resp = await AuthApi.sendSms(phone);
       if (resp.success) {
@@ -57,9 +53,7 @@ class RegisterController extends GetxController {
     _countdownTimer?.cancel();
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       countdown.value--;
-      if (countdown.value <= 0) {
-        timer.cancel();
-      }
+      if (countdown.value <= 0) timer.cancel();
     });
   }
 
@@ -97,7 +91,7 @@ class RegisterController extends GetxController {
         LocalStorage.token = resp.data!['token'];
         LocalStorage.userId = resp.data!['userId'];
         Get.find<WsClient>().connect();
-        Get.offAllNamed(AppRoutes.home);
+        Get.offAllNamed(AppRoutes.chat);
       } else {
         Get.snackbar('注册失败', resp.errMsg ?? '未知错误');
       }
