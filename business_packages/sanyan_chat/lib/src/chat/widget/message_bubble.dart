@@ -9,7 +9,7 @@ const double _avatarGap = 10;
 
 double _maxBubbleWidth(BuildContext context) {
   final w = MediaQuery.of(context).size.width;
-  return w - AuraSpacing.pagePadding * 2 - _avatarSize * 2 - _avatarGap * 2;
+  return w - AuraSpacing.pagePadding * 2 - _avatarSize - _avatarGap;
 }
 
 class MessageBubble extends StatelessWidget {
