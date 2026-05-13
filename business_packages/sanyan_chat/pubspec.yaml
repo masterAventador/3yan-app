@@ -16,6 +16,8 @@ dependencies:
     path: ../../foundation_packages/sanyan_user
   sanyan_common_ui:
     path: ../../foundation_packages/sanyan_common_ui
+  sanyan_util:
+    path: ../../foundation_packages/sanyan_util
 
 dev_dependencies:
   flutter_test:
