@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import 'package:sanyan_network/sanyan_network.dart';
+import 'package:sanyan_util/sanyan_util.dart';
 import '../../api/models/message.dart';
 import '../../api/models/message_status.dart';
 
@@ -132,11 +133,9 @@ class _Timestamp extends StatelessWidget {
   const _Timestamp({required this.createdAt});
   @override
   Widget build(BuildContext context) {
-    String t = '';
-    try {
-      final dt = DateTime.parse(createdAt).toLocal();
-      t = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-    } catch (_) {}
-    return Text(t, style: const TextStyle(fontSize: 11, color: Colors.grey));
+    return Text(
+      DateUtil.formatHHmm(createdAt),
+      style: const TextStyle(fontSize: 11, color: Colors.grey),
+    );
   }
 }
