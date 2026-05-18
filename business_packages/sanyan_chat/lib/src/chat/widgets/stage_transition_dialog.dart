@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 ///
 /// [storyMessage] 后端拼好的文案（如 "她半夜悄悄想你……"）
 /// [fromStage] / [toStage]：阶段序号，用于埋点或后续扩展（如目前不显式展示）
-/// 点击遮罩 / 卡片关闭。
+/// 点击遮罩（barrier）关闭。
 Future<void> showStageTransitionDialog(
   BuildContext context, {
   required int fromStage,
@@ -15,14 +15,15 @@ Future<void> showStageTransitionDialog(
     context: context,
     barrierDismissible: true,
     barrierColor: Colors.black.withOpacity(0.6),
-    builder: (dialogContext) => GestureDetector(
-      onTap: () => Navigator.of(dialogContext).pop(),
-      behavior: HitTestBehavior.opaque,
-      child: Center(
-        child: AnimatedScale(
-          scale: 1.0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutBack,
+    builder: (dialogContext) => Center(
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.7, end: 1.0),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutBack,
+        builder: (_, scale, child) => Transform.scale(scale: scale, child: child),
+        child: Material(
+          // Material 阻断点击穿透，确保点卡片不会触发 barrier 的关闭
+          color: Colors.transparent,
           child: Container(
             padding: const EdgeInsets.all(24),
             margin: const EdgeInsets.symmetric(horizontal: 32),
