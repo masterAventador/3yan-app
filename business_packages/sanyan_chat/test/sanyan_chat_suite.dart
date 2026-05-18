@@ -4,6 +4,7 @@ import 'relationship_req_test.dart' as relationship_req_test;
 import 'chat/widgets/intimacy_progress_bar_test.dart' as progress_bar_test;
 import 'chat/widgets/stage_transition_dialog_test.dart' as transition_dialog_test;
 import 'chat/chat_controller_test.dart' as chat_controller_test;
+import 'chat/chat_page_test.dart' as chat_page_test;
 
 void main() {
   chat_api_test.main();
@@ -12,4 +13,5 @@ void main() {
   progress_bar_test.main();
   transition_dialog_test.main();
   chat_controller_test.main();
+  chat_page_test.main();
 }
