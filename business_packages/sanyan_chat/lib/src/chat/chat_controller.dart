@@ -58,10 +58,15 @@ class ChatController extends GetxController {
   }
 
   /// 拉取初始关系数据，成功后赋值给 [relationship]。
+  /// 网络异常不阻断聊天主流程，catch 后忽略。
   Future<void> fetchInitialRelationship() async {
-    final resp = await ChatApi.fetchMyRelationship();
-    if (resp.success && resp.data != null) {
-      relationship.value = resp.data;
+    try {
+      final resp = await ChatApi.fetchMyRelationship();
+      if (resp.success && resp.data != null) {
+        relationship.value = resp.data;
+      }
+    } catch (e) {
+      // 网络异常不阻断聊天主流程，忽略
     }
   }
 
@@ -124,6 +129,9 @@ class ChatController extends GetxController {
       case WsEventType.intimacyUpdate:
         final old = relationship.value;
         if (old == null) return;
+        // TODO(plan5): 客户端本地重算 percent 需要 prevStageThreshold，当前没有该字段。
+        // 简化策略：只更新 intimacyScore，percent 不重算，等下次 fetchInitialRelationship 自然刷新。
+        // 已知限制：亲密度涨分时进度条不实时跳跃，下次 GET /me 后才刷新百分比显示。
         relationship.value = old.copyWith(
           intimacyScore: event.rawJson['score'] as int,
         );
