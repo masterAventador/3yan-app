@@ -38,15 +38,31 @@ const _baseRelationship = Relationship(
   percentToNextStage: 0.33,
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Spy controller：覆盖 fetchInitialRelationship 让它只计数不发网络，
+// 用于断言 stage_transition 帧是否触发 refetch。
+// ─────────────────────────────────────────────────────────────────────────────
+class _SpyChatController extends ChatController {
+  int refetchCount = 0;
+
+  @override
+  Future<void> fetchInitialRelationship() async {
+    refetchCount++;
+  }
+}
+
 void main() {
   late _FakeWsClient fakeWs;
-  late ChatController controller;
+  late _SpyChatController controller;
 
   setUp(() {
     Get.testMode = true;
     fakeWs = _FakeWsClient();
     Get.put<WsClient>(fakeWs);
-    controller = ChatController();
+    controller = _SpyChatController();
+    // setUp 创建 controller 时不调用 onInit（GetX 在 Get.put 时触发）。
+    // 这里直接 new，refetchCount 起步 0；onInit 没跑，fetchInitialRelationship 也不会自动调。
+    controller.refetchCount = 0;
 
     // 直接设置初始 relationship（绕过网络，专注测试 ws frame 逻辑）
     controller.relationship.value = _baseRelationship;
@@ -115,10 +131,14 @@ void main() {
   });
 
   // ───────────────────────────────────────────────────────────────────────────
-  // stage_transition frame：不更新 relationship 也不更新 pendingStoryMessage（占位帧）
+  // stage_transition frame：触发 refetch /me 让 dto 整体刷新
+  //
+  // Bug 历史：原实现 stage_transition 是占位帧不做事，intimacy_update 只累加 score
+  // 不重算 percent / stage / nextThreshold，导致跨阶段后 IntimacyProgressBar 显示
+  // 陈旧的"朋友 49/40"。修复 = 跨 stage 信号到达时立即 refetch /me。
   // ───────────────────────────────────────────────────────────────────────────
   group('handleWsFrame - stage_transition', () {
-    test('收到 stage_transition 后 relationship 和 pendingStoryMessage 均不变', () async {
+    test('收到 stage_transition 应调用 fetchInitialRelationship 一次', () async {
       controller.listenWsForTest();
 
       fakeWs.inject(WsEvent.fromJson({
@@ -129,8 +149,21 @@ void main() {
 
       await Future.microtask(() {});
 
-      expect(controller.relationship.value?.intimacyScore, 100); // 不变
-      expect(controller.pendingStoryMessage.value, ''); // 不变
+      expect(controller.refetchCount, 1);
+    });
+
+    test('pendingStoryMessage 不应被 stage_transition 帧自身改动（由 stage_story 帧负责）', () async {
+      controller.listenWsForTest();
+
+      fakeWs.inject(WsEvent.fromJson({
+        'type': WsEventType.stageTransition,
+        'from': 1,
+        'to': 2,
+      }));
+
+      await Future.microtask(() {});
+
+      expect(controller.pendingStoryMessage.value, '');
     });
   });
 

@@ -137,7 +137,10 @@ class ChatController extends GetxController {
         );
         break;
       case WsEventType.stageTransition:
-        // 仅作占位；后端会紧接着推 stage_story 帧携带故事文案。
+        // 跨 stage 信号：intimacy_update 只累加 score 不重算 percent / stage / nextThreshold，
+        // 此处 refetch /me 让 dto 整体刷新（新 stage 名 / 新阈值 / 新百分比）。
+        // 紧接着的 stage_story 帧由独立 case 处理。
+        fetchInitialRelationship();
         break;
       case WsEventType.stageStory:
         final story = event.rawJson['story_message'];
