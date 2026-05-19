@@ -15,7 +15,17 @@ class WsEvent {
   final int? serverMsgId;
   final List<dynamic>? messages;
 
-  WsEvent({required this.type, this.message, this.clientMsgId, this.serverMsgId, this.messages});
+  /// 完整原始 JSON，供解析 intimacy_update / stage_story 等扩展帧的额外字段。
+  final Map<String, dynamic> rawJson;
+
+  WsEvent({
+    required this.type,
+    this.message,
+    this.clientMsgId,
+    this.serverMsgId,
+    this.messages,
+    Map<String, dynamic>? rawJson,
+  }) : rawJson = rawJson ?? const {};
 
   factory WsEvent.fromJson(Map<String, dynamic> json) => WsEvent(
     type: json['type'] ?? '',
@@ -23,6 +33,7 @@ class WsEvent {
     clientMsgId: json['clientMsgId'],
     serverMsgId: json['serverMsgId'],
     messages: json['messages'],
+    rawJson: json,
   );
 }
 

@@ -6,11 +6,21 @@ import 'package:uuid/uuid.dart';
 import '../api/chat_api.dart';
 import '../api/models/message.dart';
 import '../api/models/message_status.dart';
+import '../api/models/relationship.dart';
 
 class ChatController extends GetxController {
   final messages = <Message>[].obs;
   final isLoading = true.obs;
   final isAiTyping = false.obs;
+
+  /// 当前用户与 AI 角色的关系数据（亲密度 + 阶段）。
+  /// onInit 时拉取初始值，intimacy_update 帧到达时实时更新。
+  final Rx<Relationship?> relationship = Rx<Relationship?>(null);
+
+  /// 待展示的阶段故事文案，stage_story 帧到达时赋值。
+  /// chat_page 通过 ever() 监听后调用 StageTransitionDialog。
+  final RxString pendingStoryMessage = ''.obs;
+
   final inputController = TextEditingController();
   final scrollController = ScrollController();
   StreamSubscription? _wsSub;
@@ -32,6 +42,7 @@ class ChatController extends GetxController {
     super.onInit();
     _loadHistory();
     _listenWs();
+    fetchInitialRelationship();
   }
 
   Future<void> _loadHistory() async {
@@ -46,51 +57,95 @@ class ChatController extends GetxController {
     }
   }
 
-  void _listenWs() {
-    _wsSub = Get.find<WsClient>().eventStream.listen((event) {
-      switch (event.type) {
-        case WsEventType.ack:
-          if (event.clientMsgId != null) {
-            final msg = _pending.remove(event.clientMsgId);
-            if (msg != null) {
-              // 用 server 落库的真实 id 替换本地临时 id，避免 cold start sync
-              // 拉历史时同一条 user 消息因 id 不同显示两遍
-              if (event.serverMsgId != null) {
-                msg.id = event.serverMsgId!;
-              }
-              msg.status = MessageStatus.sent;
-              messages.refresh();
-            }
-            _stopScanIfIdle();
-          }
-          break;
-        case WsEventType.typing:
-          isAiTyping.value = true;
-          break;
-        case WsEventType.newMessage:
-          isAiTyping.value = false;
-          if (event.message != null) {
-            messages.add(Message.fromJson(event.message!));
-            _scrollToBottom();
-          }
-          break;
-        case WsEventType.syncResult:
-          if (event.messages != null) {
-            for (final m in event.messages!) {
-              final msg = Message.fromJson(m as Map<String, dynamic>);
-              if (!messages.any((x) => x.id == msg.id)) {
-                messages.add(msg);
-              }
-            }
-            // 按 createdAt 时间序排序（ISO 8601 字符串字典序 == 时间序）。
-            // 不能按 id 排——因为 sending/failed 临时消息的 id 跟 server 端
-            // 已 ack 消息的 id 不可比（用户视觉时间和 server 落库顺序不一定一致）。
-            messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-            _scrollToBottom();
-          }
-          break;
+  /// 拉取初始关系数据，成功后赋值给 [relationship]。
+  /// 网络异常不阻断聊天主流程，catch 后忽略。
+  Future<void> fetchInitialRelationship() async {
+    try {
+      final resp = await ChatApi.fetchMyRelationship();
+      if (resp.success && resp.data != null) {
+        relationship.value = resp.data;
       }
-    });
+    } catch (e) {
+      // 网络异常不阻断聊天主流程，忽略
+    }
+  }
+
+  /// 启动 WS 帧监听。由 [onInit] 调用；测试可通过 [listenWsForTest] 直接触发。
+  void _listenWs() {
+    _wsSub = Get.find<WsClient>().eventStream.listen(_handleWsFrame);
+  }
+
+  /// 暴露给单测：直接订阅 fake WsClient，无需走 onInit 的网络初始化。
+  // ignore: invalid_use_of_visible_for_testing_member
+  void listenWsForTest() {
+    _wsSub?.cancel();
+    _wsSub = Get.find<WsClient>().eventStream.listen(_handleWsFrame);
+  }
+
+  void _handleWsFrame(WsEvent event) {
+    switch (event.type) {
+      case WsEventType.ack:
+        if (event.clientMsgId != null) {
+          final msg = _pending.remove(event.clientMsgId);
+          if (msg != null) {
+            // 用 server 落库的真实 id 替换本地临时 id，避免 cold start sync
+            // 拉历史时同一条 user 消息因 id 不同显示两遍
+            if (event.serverMsgId != null) {
+              msg.id = event.serverMsgId!;
+            }
+            msg.status = MessageStatus.sent;
+            messages.refresh();
+          }
+          _stopScanIfIdle();
+        }
+        break;
+      case WsEventType.typing:
+        isAiTyping.value = true;
+        break;
+      case WsEventType.newMessage:
+        isAiTyping.value = false;
+        if (event.message != null) {
+          messages.add(Message.fromJson(event.message!));
+          _scrollToBottom();
+        }
+        break;
+      case WsEventType.syncResult:
+        if (event.messages != null) {
+          for (final m in event.messages!) {
+            final msg = Message.fromJson(m as Map<String, dynamic>);
+            if (!messages.any((x) => x.id == msg.id)) {
+              messages.add(msg);
+            }
+          }
+          // 按 createdAt 时间序排序（ISO 8601 字符串字典序 == 时间序）。
+          // 不能按 id 排——因为 sending/failed 临时消息的 id 跟 server 端
+          // 已 ack 消息的 id 不可比（用户视觉时间和 server 落库顺序不一定一致）。
+          messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+          _scrollToBottom();
+        }
+        break;
+
+      // ── 亲密度 / 阶段推送帧 ────────────────────────────────────────────
+      case WsEventType.intimacyUpdate:
+        final old = relationship.value;
+        if (old == null) return;
+        // TODO(plan5): 客户端本地重算 percent 需要 prevStageThreshold，当前没有该字段。
+        // 简化策略：只更新 intimacyScore，percent 不重算，等下次 fetchInitialRelationship 自然刷新。
+        // 已知限制：亲密度涨分时进度条不实时跳跃，下次 GET /me 后才刷新百分比显示。
+        relationship.value = old.copyWith(
+          intimacyScore: event.rawJson['score'] as int,
+        );
+        break;
+      case WsEventType.stageTransition:
+        // 仅作占位；后端会紧接着推 stage_story 帧携带故事文案。
+        break;
+      case WsEventType.stageStory:
+        final story = event.rawJson['story_message'];
+        if (story is String) {
+          pendingStoryMessage.value = story;
+        }
+        break;
+    }
   }
 
   /// 临时消息 id 用大正数（1e15 + timestamp），确保按 id 排序时仍排在末尾，
