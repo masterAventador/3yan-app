@@ -84,12 +84,7 @@ class _TypingIndicatorState extends State<TypingIndicator>
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: AuraColors.surfaceContainerLowest,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(4),
-                    topRight: Radius.circular(12),
-                    bottomLeft: Radius.circular(12),
-                    bottomRight: Radius.circular(12),
-                  ),
+                  borderRadius: BorderRadius.circular(5),
                   boxShadow: [
                     BoxShadow(
                       color: AuraColors.onSurface.withValues(alpha: 0.06),

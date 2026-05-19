@@ -31,10 +31,10 @@ class ChatInputBar extends StatelessWidget {
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.6),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(5),
                           borderSide: BorderSide.none,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
                       ),
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => onSend(),

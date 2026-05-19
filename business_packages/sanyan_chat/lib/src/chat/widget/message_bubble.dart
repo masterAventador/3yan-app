@@ -80,10 +80,10 @@ class _TextBubbleWithStatus extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bubble = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: isUser ? AuraColors.primary : Colors.white.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(5),
       ),
       child: Text(
         message.content,
