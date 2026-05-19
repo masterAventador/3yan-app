@@ -97,12 +97,20 @@ class _TextBubbleWithStatus extends StatelessWidget {
 
     final indicator = _statusIndicator();
     if (indicator == null) return bubble;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: isUser
-          ? [indicator, const SizedBox(width: 6), Flexible(child: bubble)]
-          : [Flexible(child: bubble), const SizedBox(width: 6), indicator],
+    // indicator 浮在气泡外侧、不参与 layout，确保失败 → 重发成功后 bubble 尺寸/位置不抖动。
+    // user 消息：indicator 浮气泡左外；ai 消息：indicator 浮气泡右外。
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        bubble,
+        Positioned(
+          top: 0,
+          bottom: 0,
+          left: isUser ? null : -28,
+          right: isUser ? -28 : null,
+          child: Center(child: indicator),
+        ),
+      ],
     );
   }
 

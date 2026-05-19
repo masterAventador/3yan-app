@@ -60,18 +60,17 @@ class _TypingIndicatorState extends State<TypingIndicator>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 头像样式与 MessageBubble 的 AI 头像保持一致（BoxShape.circle + 同款渐变 + 同款 Icon）。
           Container(
             width: 40,
             height: 40,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              gradient: AuraColors.mintAzureGradient,
-              border: Border.all(
-                color: AuraColors.primaryFixed.withValues(alpha: 0.6),
-                width: 1.5,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [Color(0xFFA8E6CF), Color(0xFF7CCFC6)],
               ),
             ),
-            child: const Icon(Icons.favorite, color: Colors.white, size: 18),
+            child: const Icon(Icons.favorite, color: Colors.white, size: 20),
           ),
           const SizedBox(width: 10),
           Column(

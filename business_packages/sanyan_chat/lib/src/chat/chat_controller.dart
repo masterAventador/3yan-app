@@ -101,6 +101,8 @@ class ChatController extends GetxController {
         break;
       case WsEventType.typing:
         isAiTyping.value = true;
+        // typing 气泡作为 ListView 末项追加，需主动滚到底防被输入框挡住下半。
+        _scrollToBottom();
         break;
       case WsEventType.newMessage:
         isAiTyping.value = false;
