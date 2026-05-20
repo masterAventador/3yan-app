@@ -97,7 +97,17 @@ class MessageBubbleShell extends StatelessWidget {
         content = const SizedBox.shrink();
         break;
     }
-    return SizedBox(width: _indicatorSlotSize, height: _indicatorSlotSize, child: Center(child: content));
+    // Column.center 让 icon 在 slot 内垂直居中，配合外层 IntrinsicHeight
+    // 让本 slot 撑到与 bubble 同高，icon 即可与 bubble 中线对齐。
+    return SizedBox(
+      width: _indicatorSlotSize,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(width: _indicatorSlotSize, height: _indicatorSlotSize, child: Center(child: content)),
+        ],
+      ),
+    );
   }
 
   Widget _buildBubble(BuildContext context) {
@@ -107,13 +117,20 @@ class MessageBubbleShell extends StatelessWidget {
         minHeight: kAvatarSize,
       ),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isUser ? AuraColors.primary : Colors.white.withValues(alpha: 0.85),
           borderRadius: BorderRadius.circular(5),
         ),
-        child: child,
+        // 宽度收缩到 child（widthFactor=1.0），高度填满 minHeight 让短消息垂直居中。
+        // 不能在 Container 上设 alignment——那会让 Container 撑到 maxWidth。
+        child: Align(
+          alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+          widthFactor: 1.0,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: child,
+          ),
+        ),
       ),
     );
   }
@@ -135,18 +152,21 @@ class MessageBubbleShell extends StatelessWidget {
     final avatar = _buildAvatar();
     final bubble = _buildBubble(context);
 
-    final Row row;
+    final Widget row;
     if (isUser) {
-      row = Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildIndicatorSlot(),
-          const SizedBox(width: _indicatorGap),
-          Flexible(child: bubble),
-          const SizedBox(width: _avatarGap),
-          avatar,
-        ],
+      // IntrinsicHeight 让 Row 高度 = bubble 高度，indicator slot 才能撑高到底对齐
+      row = IntrinsicHeight(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildIndicatorSlot(),
+            const SizedBox(width: _indicatorGap),
+            Flexible(child: bubble),
+            const SizedBox(width: _avatarGap),
+            avatar,
+          ],
+        ),
       );
     } else {
       row = Row(
