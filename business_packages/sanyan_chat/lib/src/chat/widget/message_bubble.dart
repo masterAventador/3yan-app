@@ -1,18 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import 'package:sanyan_network/sanyan_network.dart';
-import 'package:sanyan_util/sanyan_util.dart';
 import '../../api/models/message.dart';
-import '../../api/models/message_status.dart';
+import 'message_bubble_shell.dart';
 
-const double _avatarSize = 40;
-const double _avatarGap = 10;
-
-double _maxBubbleWidth(BuildContext context) {
-  final w = MediaQuery.of(context).size.width;
-  return w - AuraSpacing.pagePadding * 2 - (_avatarSize + _avatarGap) * 2;
-}
-
+/// 文本消息气泡：在 [MessageBubbleShell] 内塞一个 Text 作为内容。
+/// 头像 / 气泡边框 / status indicator / 时间戳全部由 shell 负责。
 class MessageBubble extends StatelessWidget {
   final Message message;
   final VoidCallback? onRetry;
@@ -21,70 +14,11 @@ class MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isUser = message.senderType == SenderType.user;
-    final maxW = _maxBubbleWidth(context);
-
-    final avatar = _Avatar(isUser: isUser);
-    final bubble = ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: maxW),
-      child: Column(
-        crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _TextBubbleWithStatus(message: message, isUser: isUser, onRetry: onRetry),
-          const SizedBox(height: 4),
-          _Timestamp(createdAt: message.createdAt),
-        ],
-      ),
-    );
-
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: AuraSpacing.pagePadding, vertical: 3),
-      child: Row(
-        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: isUser
-            ? [Flexible(child: bubble), const SizedBox(width: _avatarGap), avatar]
-            : [avatar, const SizedBox(width: _avatarGap), Flexible(child: bubble)],
-      ),
-    );
-  }
-}
-
-class _Avatar extends StatelessWidget {
-  final bool isUser;
-  const _Avatar({required this.isUser});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: _avatarSize,
-      height: _avatarSize,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          colors: isUser
-              ? const [Color(0xFF9F7AEA), Color(0xFFCD7BE5)]
-              : const [Color(0xFFA8E6CF), Color(0xFF7CCFC6)],
-        ),
-      ),
-      child: Icon(isUser ? Icons.person : Icons.favorite, color: Colors.white, size: 20),
-    );
-  }
-}
-
-class _TextBubbleWithStatus extends StatelessWidget {
-  final Message message;
-  final bool isUser;
-  final VoidCallback? onRetry;
-  const _TextBubbleWithStatus({required this.message, required this.isUser, this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    final bubble = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: isUser ? AuraColors.primary : Colors.white.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(5),
-      ),
+    return MessageBubbleShell(
+      isUser: isUser,
+      status: message.status,
+      createdAt: message.createdAt,
+      onRetry: onRetry,
       child: Text(
         message.content,
         style: TextStyle(
@@ -93,57 +27,6 @@ class _TextBubbleWithStatus extends StatelessWidget {
           height: 1.35,
         ),
       ),
-    );
-
-    final indicator = _statusIndicator();
-    if (indicator == null) return bubble;
-    // indicator 浮在气泡外侧、不参与 layout，确保失败 → 重发成功后 bubble 尺寸/位置不抖动。
-    // user 消息：indicator 浮气泡左外；ai 消息：indicator 浮气泡右外。
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        bubble,
-        Positioned(
-          top: 0,
-          bottom: 0,
-          left: isUser ? null : -28,
-          right: isUser ? -28 : null,
-          child: Center(child: indicator),
-        ),
-      ],
-    );
-  }
-
-  Widget? _statusIndicator() {
-    switch (message.status) {
-      case MessageStatus.sending:
-        return const SizedBox(
-          width: 14,
-          height: 14,
-          child: CircularProgressIndicator(strokeWidth: 2, color: AuraColors.primary),
-        );
-      case MessageStatus.failed:
-        return IconButton(
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
-          icon: const Icon(Icons.error, color: Colors.red, size: 18),
-          onPressed: onRetry,
-        );
-      case MessageStatus.sent:
-      case null:
-        return null;
-    }
-  }
-}
-
-class _Timestamp extends StatelessWidget {
-  final String createdAt;
-  const _Timestamp({required this.createdAt});
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      DateUtil.formatHHmm(createdAt),
-      style: const TextStyle(fontSize: 11, color: Colors.grey),
     );
   }
 }
