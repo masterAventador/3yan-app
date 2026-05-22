@@ -87,9 +87,12 @@ class MessageBubbleShell extends StatelessWidget {
           child: CircularProgressIndicator(strokeWidth: 2, color: AuraColors.primary),
         );
       case MessageStatus.failed:
+        // IconButton 缩到 icon 实际大小（18x18），让外层 Align(centerRight) 能真把它
+        // 贴到 slot 右边——之前 constraints 用 _indicatorSlotSize=24 让 IconButton 占满
+        // slot 宽，Align 怎么对都没视觉差。点击区域也 18x18，status indicator 低频点击可接受。
         return IconButton(
           padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: _indicatorSlotSize, minHeight: _indicatorSlotSize),
+          constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
           icon: const Icon(Icons.error, color: Colors.red, size: 18),
           onPressed: onRetry,
         );
@@ -143,36 +146,48 @@ class MessageBubbleShell extends StatelessWidget {
 
     final Widget row;
     if (isUser) {
-      // Stack 布局：基础 Row 顶对齐（avatar / bubble / indicator 占位都顶对齐），
-      // Stack 高度 = Row 高度 = bubble 高度（bubble 通常最高）。叠加一个 Positioned
-      // 撑满 Stack 高度的 indicator slot，内部 Center 让 icon 落到 bubble 中线。
-      //
-      // 这套既满足"avatar 顶对齐"又满足"indicator 跟 bubble 中线对齐"，且不引入
-      // IntrinsicHeight（IntrinsicHeight 跟 ConstrainedBox.maxWidth 的 intrinsic
-      // 行为冲突，会让长消息按更大 width 算行数偏少，actual layout 用真 width 换行
-      // 偏多，被锁高后第二行裁切）。
-      row = Stack(
+      // 嵌套布局：
+      //   外层 Row（end 对齐，撑到屏宽，让整组靠右）：[ indicatorBubbleGroup, gap, avatar ]
+      //   indicatorBubbleGroup = Stack：
+      //     - 内层 Row(mainAxisSize.min)：[ SizedBox(24 占位), gap 6, bubble ]
+      //       紧凑排列——Stack 大小 = 内层 Row 大小，bubble 紧贴 indicator slot 右边
+      //     - Positioned indicator slot 在 Stack 左侧 0-24 区，撑满高度，Align centerRight
+      //       让 icon 贴右紧靠 bubble，间距只剩 indicatorGap=6
+      //   bubble 高度自然由文本决定（无 IntrinsicHeight 干扰，长消息不会被裁），
+      //   indicator slot 在 Stack 内 Positioned 撑满 = bubble 同高，icon Center 落到 bubble 中线
+      row = Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(width: _indicatorSlotSize),  // 占位，给 Positioned indicator 留宽
-              const SizedBox(width: _indicatorGap),
-              Flexible(child: bubble),
-              const SizedBox(width: _avatarGap),
-              avatar,
-            ],
-          ),
-          PositionedDirectional(
-            start: 0,
-            top: 0,
-            bottom: 0,
-            child: SizedBox(
-              width: _indicatorSlotSize,
-              child: Center(child: _buildIndicatorContent()),
+          Flexible(
+            child: Stack(
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(width: _indicatorSlotSize),
+                    const SizedBox(width: _indicatorGap),
+                    Flexible(child: bubble),
+                  ],
+                ),
+                PositionedDirectional(
+                  start: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: SizedBox(
+                    width: _indicatorSlotSize,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: _buildIndicatorContent(),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
+          const SizedBox(width: _avatarGap),
+          avatar,
         ],
       );
     } else {
