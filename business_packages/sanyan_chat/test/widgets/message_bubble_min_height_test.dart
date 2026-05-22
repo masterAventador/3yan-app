@@ -85,29 +85,53 @@ void main() {
     );
   });
 
-  testWidgets('failed 状态下 indicator 感叹号应与 avatar 中线对齐（短气泡时同时与 bubble 中线对齐）', (tester) async {
-    // indicator slot 固定 kAvatarSize=40 高，内部 Center 居中 icon → indicator 中心 Y
-    // 应与 avatar 中心 Y 一致。短气泡（单字"好"，气泡高 = kAvatarSize=40）时 bubble
-    // 中线 = indicator 中线 = avatar 中线三者重合；长气泡时 indicator/avatar 仍中线
-    // 对齐（在 Row 顶部 kAvatarSize 区域内），bubble 整体下沿超出但顶部对齐，跟主流 IM 一致。
+  testWidgets('failed 状态下 indicator 感叹号应与 bubble 垂直中线对齐（不论气泡多高）', (tester) async {
+    // 用长消息（17 字折 2 行）测试，bubble 高 ~56，avatar 高 40——indicator 应落在
+    // bubble 中线（28-ish）而非 avatar 中线（20-ish），证明跟 bubble 走而非跟 avatar 绑死。
+    const text = '我不知道啊。。你的小说。。你来我';
     await tester.pumpWidget(_wrap(
-      MessageBubble(message: _msg('好', status: MessageStatus.failed)),
+      MessageBubble(message: _msg(text, status: MessageStatus.failed)),
     ));
     await tester.pumpAndSettle();
 
     final iconBox = tester.renderObject<RenderBox>(find.byIcon(Icons.error));
-    // avatar 是 user 行的最右一个 40x40 Container（含 Icons.person）
-    final avatarBox = tester.renderObject<RenderBox>(
-      find.ancestor(of: find.byIcon(Icons.person), matching: find.byType(Container)).first,
+    final bubbleBox = tester.renderObject<RenderBox>(
+      find.ancestor(of: find.text(text), matching: find.byType(Container)).first,
     );
 
     final iconCenterY = iconBox.localToGlobal(Offset(iconBox.size.width / 2, iconBox.size.height / 2)).dy;
-    final avatarCenterY = avatarBox.localToGlobal(Offset(avatarBox.size.width / 2, avatarBox.size.height / 2)).dy;
+    final bubbleTop = bubbleBox.localToGlobal(Offset.zero).dy;
+    final bubbleMidY = bubbleTop + bubbleBox.size.height / 2;
 
     expect(
-      (iconCenterY - avatarCenterY).abs(),
+      (iconCenterY - bubbleMidY).abs(),
       lessThanOrEqualTo(3),
-      reason: '感叹号中心应与 avatar 中线对齐，期望 ≈ $avatarCenterY，实际 $iconCenterY',
+      reason: '感叹号中心应与 bubble 中线对齐，期望 ≈ $bubbleMidY（bubble 高 ${bubbleBox.size.height}），实际 $iconCenterY',
+    );
+  });
+
+  testWidgets('failed 状态下 avatar 应保持顶对齐（不跟着 indicator 居中往下走）', (tester) async {
+    // 多行 bubble 时 avatar 仍顶对齐——验证 Stack 方案没有把 avatar 也带到中线。
+    const text = '我不知道啊。。你的小说。。你来我';
+    await tester.pumpWidget(_wrap(
+      MessageBubble(message: _msg(text, status: MessageStatus.failed)),
+    ));
+    await tester.pumpAndSettle();
+
+    final avatarBox = tester.renderObject<RenderBox>(
+      find.ancestor(of: find.byIcon(Icons.person), matching: find.byType(Container)).first,
+    );
+    final bubbleBox = tester.renderObject<RenderBox>(
+      find.ancestor(of: find.text(text), matching: find.byType(Container)).first,
+    );
+
+    final avatarTop = avatarBox.localToGlobal(Offset.zero).dy;
+    final bubbleTop = bubbleBox.localToGlobal(Offset.zero).dy;
+
+    expect(
+      (avatarTop - bubbleTop).abs(),
+      lessThanOrEqualTo(1),
+      reason: 'avatar 顶应与 bubble 顶对齐，差值 ${(avatarTop - bubbleTop).abs()}',
     );
   });
 }

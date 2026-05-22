@@ -74,38 +74,29 @@ class MessageBubbleShell extends StatelessWidget {
     );
   }
 
-  Widget _buildIndicatorSlot() {
-    Widget content;
+  /// 只返回 indicator icon 本身，不带尺寸/对齐 wrapper——外层用 Stack+Positioned
+  /// 把 slot 撑到跟 bubble 同高，再 Center 落到 bubble 中线，从而既不依赖
+  /// IntrinsicHeight（避免跟 ConstrainedBox.maxWidth intrinsic 行为冲突导致裁切
+  /// 长消息），又让 indicator 跟 bubble 中线对齐而非跟 avatar 顶部绑死。
+  Widget _buildIndicatorContent() {
     switch (status) {
       case MessageStatus.sending:
-        content = const SizedBox(
+        return const SizedBox(
           width: 14,
           height: 14,
           child: CircularProgressIndicator(strokeWidth: 2, color: AuraColors.primary),
         );
-        break;
       case MessageStatus.failed:
-        content = IconButton(
+        return IconButton(
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: _indicatorSlotSize, minHeight: _indicatorSlotSize),
           icon: const Icon(Icons.error, color: Colors.red, size: 18),
           onPressed: onRetry,
         );
-        break;
       case MessageStatus.sent:
       case null:
-        content = const SizedBox.shrink();
-        break;
+        return const SizedBox.shrink();
     }
-    // slot 固定高 kAvatarSize=40 与 avatar 同高，icon 在内部 Center 居中：
-    // indicator 中心(20) == avatar 中心(20)，天然中线对齐。
-    // 不再依赖 IntrinsicHeight 撑高到 bubble 同高——曾经那个方案跟
-    // ConstrainedBox(maxWidth) 的 intrinsic 行为冲突，长消息会被切高度。
-    return SizedBox(
-      width: _indicatorSlotSize,
-      height: kAvatarSize,
-      child: Center(child: content),
-    );
   }
 
   Widget _buildBubble(BuildContext context) {
@@ -152,21 +143,36 @@ class MessageBubbleShell extends StatelessWidget {
 
     final Widget row;
     if (isUser) {
-      // 不用 IntrinsicHeight：曾经为 indicator 中线对齐 bubble 引入，但 IntrinsicHeight
-      // 跟 ConstrainedBox(maxWidth) 的 intrinsic 算法冲突——ConstrainedBox 算 intrinsic
-      // height 时不把 maxWidth 传给 child，导致 Text 在 intrinsic 阶段以更大 width 算
-      // 行数（偏少），actual layout 用真 maxWidth 算行数（偏多），高度被 IntrinsicHeight
-      // 锁在偏少的版本上 → 长消息第二行被裁。改成 indicator slot 固定 kAvatarSize 高
-      // 跟 avatar 中线对齐（短气泡时也同时跟 bubble 中线对齐），bug 消失。
-      row = Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.start,
+      // Stack 布局：基础 Row 顶对齐（avatar / bubble / indicator 占位都顶对齐），
+      // Stack 高度 = Row 高度 = bubble 高度（bubble 通常最高）。叠加一个 Positioned
+      // 撑满 Stack 高度的 indicator slot，内部 Center 让 icon 落到 bubble 中线。
+      //
+      // 这套既满足"avatar 顶对齐"又满足"indicator 跟 bubble 中线对齐"，且不引入
+      // IntrinsicHeight（IntrinsicHeight 跟 ConstrainedBox.maxWidth 的 intrinsic
+      // 行为冲突，会让长消息按更大 width 算行数偏少，actual layout 用真 width 换行
+      // 偏多，被锁高后第二行裁切）。
+      row = Stack(
         children: [
-          _buildIndicatorSlot(),
-          const SizedBox(width: _indicatorGap),
-          Flexible(child: bubble),
-          const SizedBox(width: _avatarGap),
-          avatar,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(width: _indicatorSlotSize),  // 占位，给 Positioned indicator 留宽
+              const SizedBox(width: _indicatorGap),
+              Flexible(child: bubble),
+              const SizedBox(width: _avatarGap),
+              avatar,
+            ],
+          ),
+          PositionedDirectional(
+            start: 0,
+            top: 0,
+            bottom: 0,
+            child: SizedBox(
+              width: _indicatorSlotSize,
+              child: Center(child: _buildIndicatorContent()),
+            ),
+          ),
         ],
       );
     } else {
