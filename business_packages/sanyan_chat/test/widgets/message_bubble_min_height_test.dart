@@ -60,30 +60,54 @@ void main() {
     );
   });
 
-  testWidgets('failed 状态下 indicator 感叹号应与 bubble 垂直居中对齐', (tester) async {
+  testWidgets('两行文字（第二行只有 1 字）气泡高度应能容纳完整文本不裁切', (tester) async {
+    // dogfood 实测 bug：当文本在 maxWidth 下恰好换行成"第一行满 + 第二行 1 字"时，
+    // 气泡仅显示一行高度，第二行被裁切。fontSize=16 + height=1.35 → 单行 ~21.6px，
+    // 加 vertical padding 12 → 两行预期 ≈ 55.2px，不应被卡在 ~28-44px。
+    // 复现：用 user 报错截图的原文（17 字符），在 maxBubbleWidth=268 / Text 可用宽度=248
+    // 下恰好折成 16 字 + 1 字（"我"换到第二行）。
+    const text = '我不知道啊。。你的小说。。你来我';
+    await tester.pumpWidget(_wrap(MessageBubble(message: _msg(text))));
+    await tester.pumpAndSettle();
+
+    final RenderBox textBox = tester.renderObject(find.text(text));
+    final double bubbleH = _bubbleHeight(tester, text);
+    // textBox 是 RenderParagraph，size 是经过 constraints.constrain 后的——如果父给的 maxHeight
+    // 不够会被 clamp。所以直接比 textBox.size.height 看不出裁切；要比 textPainter 真实高度。
+    // 但 textBox.size.height 至少 == "我们以为 parent 给的 max"。我们 assert bubble 高度
+    // 至少 ≥ 2 行高度 + padding，让父能装下 2 行。
+    final double expectedMinFor2Lines = 2 * 16 * 1.35 + 12;  // ≈ 55.2
+    expect(
+      bubbleH,
+      greaterThanOrEqualTo(expectedMinFor2Lines - 1),  // -1 容差给 sub-pixel
+      reason: '17 字文本应折 2 行，气泡高度应 >= $expectedMinFor2Lines，实际 $bubbleH。'
+              ' textBox.size=${textBox.size}',
+    );
+  });
+
+  testWidgets('failed 状态下 indicator 感叹号应与 avatar 中线对齐（短气泡时同时与 bubble 中线对齐）', (tester) async {
+    // indicator slot 固定 kAvatarSize=40 高，内部 Center 居中 icon → indicator 中心 Y
+    // 应与 avatar 中心 Y 一致。短气泡（单字"好"，气泡高 = kAvatarSize=40）时 bubble
+    // 中线 = indicator 中线 = avatar 中线三者重合；长气泡时 indicator/avatar 仍中线
+    // 对齐（在 Row 顶部 kAvatarSize 区域内），bubble 整体下沿超出但顶部对齐，跟主流 IM 一致。
     await tester.pumpWidget(_wrap(
       MessageBubble(message: _msg('好', status: MessageStatus.failed)),
     ));
     await tester.pumpAndSettle();
 
-    final iconFinder = find.byIcon(Icons.error);
-    final bubbleFinder = find.ancestor(
-      of: find.text('好'),
-      matching: find.byType(Container),
-    ).first;
-
-    final iconBox = tester.renderObject<RenderBox>(iconFinder);
-    final bubbleBox = tester.renderObject<RenderBox>(bubbleFinder);
+    final iconBox = tester.renderObject<RenderBox>(find.byIcon(Icons.error));
+    // avatar 是 user 行的最右一个 40x40 Container（含 Icons.person）
+    final avatarBox = tester.renderObject<RenderBox>(
+      find.ancestor(of: find.byIcon(Icons.person), matching: find.byType(Container)).first,
+    );
 
     final iconCenterY = iconBox.localToGlobal(Offset(iconBox.size.width / 2, iconBox.size.height / 2)).dy;
-    final bubbleTop = bubbleBox.localToGlobal(Offset.zero).dy;
-    final bubbleMidY = bubbleTop + bubbleBox.size.height / 2;
+    final avatarCenterY = avatarBox.localToGlobal(Offset(avatarBox.size.width / 2, avatarBox.size.height / 2)).dy;
 
-    // 容差 3px（亚像素 / IconButton padding 等导致微小偏差可接受）
     expect(
-      (iconCenterY - bubbleMidY).abs(),
+      (iconCenterY - avatarCenterY).abs(),
       lessThanOrEqualTo(3),
-      reason: '感叹号中心应与 bubble 中线对齐，期望 ≈ $bubbleMidY，实际 $iconCenterY',
+      reason: '感叹号中心应与 avatar 中线对齐，期望 ≈ $avatarCenterY，实际 $iconCenterY',
     );
   });
 }

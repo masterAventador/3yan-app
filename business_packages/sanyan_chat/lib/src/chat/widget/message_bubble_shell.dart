@@ -97,16 +97,14 @@ class MessageBubbleShell extends StatelessWidget {
         content = const SizedBox.shrink();
         break;
     }
-    // Column.center 让 icon 在 slot 内垂直居中，配合外层 IntrinsicHeight
-    // 让本 slot 撑到与 bubble 同高，icon 即可与 bubble 中线对齐。
+    // slot 固定高 kAvatarSize=40 与 avatar 同高，icon 在内部 Center 居中：
+    // indicator 中心(20) == avatar 中心(20)，天然中线对齐。
+    // 不再依赖 IntrinsicHeight 撑高到 bubble 同高——曾经那个方案跟
+    // ConstrainedBox(maxWidth) 的 intrinsic 行为冲突，长消息会被切高度。
     return SizedBox(
       width: _indicatorSlotSize,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(width: _indicatorSlotSize, height: _indicatorSlotSize, child: Center(child: content)),
-        ],
-      ),
+      height: kAvatarSize,
+      child: Center(child: content),
     );
   }
 
@@ -154,19 +152,22 @@ class MessageBubbleShell extends StatelessWidget {
 
     final Widget row;
     if (isUser) {
-      // IntrinsicHeight 让 Row 高度 = bubble 高度，indicator slot 才能撑高到底对齐
-      row = IntrinsicHeight(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildIndicatorSlot(),
-            const SizedBox(width: _indicatorGap),
-            Flexible(child: bubble),
-            const SizedBox(width: _avatarGap),
-            avatar,
-          ],
-        ),
+      // 不用 IntrinsicHeight：曾经为 indicator 中线对齐 bubble 引入，但 IntrinsicHeight
+      // 跟 ConstrainedBox(maxWidth) 的 intrinsic 算法冲突——ConstrainedBox 算 intrinsic
+      // height 时不把 maxWidth 传给 child，导致 Text 在 intrinsic 阶段以更大 width 算
+      // 行数（偏少），actual layout 用真 maxWidth 算行数（偏多），高度被 IntrinsicHeight
+      // 锁在偏少的版本上 → 长消息第二行被裁。改成 indicator slot 固定 kAvatarSize 高
+      // 跟 avatar 中线对齐（短气泡时也同时跟 bubble 中线对齐），bug 消失。
+      row = Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildIndicatorSlot(),
+          const SizedBox(width: _indicatorGap),
+          Flexible(child: bubble),
+          const SizedBox(width: _avatarGap),
+          avatar,
+        ],
       );
     } else {
       row = Row(
