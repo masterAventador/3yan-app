@@ -17,10 +17,6 @@ class ChatController extends GetxController {
   /// onInit 时拉取初始值，intimacy_update 帧到达时实时更新。
   final Rx<Relationship?> relationship = Rx<Relationship?>(null);
 
-  /// 待展示的阶段故事文案，stage_story 帧到达时赋值。
-  /// chat_page 通过 ever() 监听后调用 StageTransitionDialog。
-  final RxString pendingStoryMessage = ''.obs;
-
   final inputController = TextEditingController();
   final scrollController = ScrollController();
   StreamSubscription? _wsSub;
@@ -141,14 +137,9 @@ class ChatController extends GetxController {
       case WsEventType.stageTransition:
         // 跨 stage 信号：intimacy_update 只累加 score 不重算 percent / stage / nextThreshold，
         // 此处 refetch /me 让 dto 整体刷新（新 stage 名 / 新阈值 / 新百分比）。
-        // 紧接着的 stage_story 帧由独立 case 处理。
+        // server 仍然会推 stage_story 帧（含剧情台词），客户端有意忽略——
+        // 关系阶段升级走静默路径，不在 app 弹剧情提示。
         fetchInitialRelationship();
-        break;
-      case WsEventType.stageStory:
-        final story = event.rawJson['story_message'];
-        if (story is String) {
-          pendingStoryMessage.value = story;
-        }
         break;
     }
   }

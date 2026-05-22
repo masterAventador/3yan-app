@@ -7,10 +7,9 @@ import 'widget/chat_input_bar.dart';
 import 'widget/message_bubble.dart';
 import 'widget/typing_indicator.dart';
 import 'widgets/intimacy_progress_bar.dart';
-import 'widgets/stage_transition_dialog.dart';
 
 class ChatPage extends StatefulWidget {
-  ChatPage({super.key});
+  const ChatPage({super.key});
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -18,28 +17,11 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   late final ChatController c;
-  Worker? _storyWorker;
 
   @override
   void initState() {
     super.initState();
     c = Get.put(ChatController());
-    _storyWorker = ever(c.pendingStoryMessage, (String story) {
-      if (story.isEmpty) return;
-      showStageTransitionDialog(
-        context,
-        fromStage: c.relationship.value?.currentStage ?? 0,
-        toStage: c.relationship.value?.currentStage ?? 0,
-        storyMessage: story,
-      );
-      c.pendingStoryMessage.value = '';
-    });
-  }
-
-  @override
-  void dispose() {
-    _storyWorker?.dispose();
-    super.dispose();
   }
 
   @override

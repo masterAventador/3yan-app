@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:sanyan_chat/src/api/models/relationship.dart';
@@ -85,38 +84,4 @@ void main() {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // 集成测试：pendingStoryMessage 触发 StageTransitionDialog
-  // ─────────────────────────────────────────────────────────────────────────
-  group('ChatPage - StageTransitionDialog 集成', () {
-    testWidgets('pendingStoryMessage 变为非空时弹出 dialog', (tester) async {
-      await tester.pumpWidget(
-        GetMaterialApp(home: ChatPage()),
-      );
-      await tester.pump();
-
-      // 触发 ever() 监听
-      controller.pendingStoryMessage.value = '她半夜悄悄想你……';
-      // pump 推进 dialog 弹出和 TweenAnimationBuilder 动画（300ms）
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 350));
-
-      // dialog 应出现（显示 storyMessage 文字）
-      expect(find.text('她半夜悄悄想你……'), findsOneWidget);
-    });
-
-    testWidgets('dialog 显示后 pendingStoryMessage 被清空', (tester) async {
-      await tester.pumpWidget(
-        GetMaterialApp(home: ChatPage()),
-      );
-      await tester.pump();
-
-      controller.pendingStoryMessage.value = '测试故事文案';
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 350));
-
-      // dialog 弹出后 controller 字段应已清空（消费语义）
-      expect(controller.pendingStoryMessage.value, '');
-    });
-  });
 }

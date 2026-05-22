@@ -11,5 +11,4 @@ abstract class WsEventType {
   // ── 亲密度 / 阶段相关推送帧 ──
   static const String intimacyUpdate = 'intimacy_update';
   static const String stageTransition = 'stage_transition';
-  static const String stageStory = 'stage_story';
 }

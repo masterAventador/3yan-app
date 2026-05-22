@@ -112,25 +112,6 @@ void main() {
   });
 
   // ───────────────────────────────────────────────────────────────────────────
-  // stage_story frame：应更新 pendingStoryMessage.value
-  // ───────────────────────────────────────────────────────────────────────────
-  group('handleWsFrame - stage_story', () {
-    test('收到 stage_story 后 pendingStoryMessage.value 被赋值', () async {
-      controller.listenWsForTest();
-
-      fakeWs.inject(WsEvent.fromJson({
-        'type': WsEventType.stageStory,
-        'stage': 2,
-        'story_message': '她半夜发来一条消息……',
-      }));
-
-      await Future.microtask(() {});
-
-      expect(controller.pendingStoryMessage.value, '她半夜发来一条消息……');
-    });
-  });
-
-  // ───────────────────────────────────────────────────────────────────────────
   // stage_transition frame：触发 refetch /me 让 dto 整体刷新
   //
   // Bug 历史：原实现 stage_transition 是占位帧不做事，intimacy_update 只累加 score
@@ -152,19 +133,6 @@ void main() {
       expect(controller.refetchCount, 1);
     });
 
-    test('pendingStoryMessage 不应被 stage_transition 帧自身改动（由 stage_story 帧负责）', () async {
-      controller.listenWsForTest();
-
-      fakeWs.inject(WsEvent.fromJson({
-        'type': WsEventType.stageTransition,
-        'from': 1,
-        'to': 2,
-      }));
-
-      await Future.microtask(() {});
-
-      expect(controller.pendingStoryMessage.value, '');
-    });
   });
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -184,8 +152,5 @@ void main() {
       expect(controller.relationship.value?.currentStage, 1);
     });
 
-    test('pendingStoryMessage 初始为空字符串', () {
-      expect(controller.pendingStoryMessage.value, '');
-    });
   });
 }

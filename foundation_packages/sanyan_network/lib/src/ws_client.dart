@@ -15,7 +15,7 @@ class WsEvent {
   final int? serverMsgId;
   final List<dynamic>? messages;
 
-  /// 完整原始 JSON，供解析 intimacy_update / stage_story 等扩展帧的额外字段。
+  /// 完整原始 JSON，供解析 intimacy_update 等扩展帧的额外字段。
   final Map<String, dynamic> rawJson;
 
   WsEvent({
