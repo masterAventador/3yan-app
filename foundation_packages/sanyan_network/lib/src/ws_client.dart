@@ -118,6 +118,16 @@ class WsClient extends GetxService {
     _send({'type': WsEventType.sync, 'lastMsgId': lastMsgId});
   }
 
+  /// 向 server 回报「已收到主动消息」，即 client→server 方向的 ack 帧。
+  /// serverMsgId 是 server 落库的消息 id，对应帧字段 ackMsgId。
+  ///
+  /// 注意区分：server 给 client 发的入向 ack（确认 client 消息已落库）走 clientMsgId，
+  /// 由 _handleWsFrame(WsEventType.ack) 分支消费；
+  /// 本方法是反方向——client 给 server 发的出向 ack，确认主动消息已送达。
+  bool sendAck(int serverMsgId) {
+    return _send({'type': WsEventType.ack, 'ackMsgId': serverMsgId});
+  }
+
   bool _send(Map<String, dynamic> data) {
     if (!_isConnected || _channel == null) return false;
     try {

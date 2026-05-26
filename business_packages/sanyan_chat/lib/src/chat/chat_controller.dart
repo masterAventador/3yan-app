@@ -106,6 +106,11 @@ class ChatController extends GetxController {
           messages.add(Message.fromJson(event.message!));
           _scrollToBottom();
         }
+        if (event.serverMsgId != null) {
+          // ACK 发送失败（WS 断开）时不做额外处理：
+          // server 端 L2 future 超时后会走离线推送兜底，客户端无需重试。
+          Get.find<WsClient>().sendAck(event.serverMsgId!);
+        }
         break;
       case WsEventType.syncResult:
         if (event.messages != null) {
