@@ -42,6 +42,8 @@ class LoginController extends GetxController {
       if (resp.success && resp.data != null) {
         LocalStorage.token = resp.data!['token'];
         LocalStorage.userId = resp.data!['userId'];
+        // TODO(plan5-push): 当前 token 为 null，登录后占位调用，真实 token 待推送 SDK 接入
+        AuthApi.registerPushTokenAfterLogin();
         Get.find<WsClient>().connect();
         Get.offAllNamed(AppRoutes.chat);
       } else {
