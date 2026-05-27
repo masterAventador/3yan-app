@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:sanyan_chat/src/api/models/relationship.dart';
@@ -84,4 +85,33 @@ void main() {
     });
   });
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // 设置抽屉：右上角设置按钮 + 点击主体右移露出左侧抽屉
+  // ─────────────────────────────────────────────────────────────────────────
+  group('ChatPage - 设置抽屉', () {
+    testWidgets('AppBar 右上角有设置按钮', (tester) async {
+      await tester.pumpWidget(GetMaterialApp(home: ChatPage()));
+      await tester.pump();
+
+      expect(find.byIcon(Icons.settings), findsOneWidget);
+    });
+
+    testWidgets('点击设置按钮：主体整体右移露出设置抽屉', (tester) async {
+      await tester.pumpWidget(GetMaterialApp(home: ChatPage()));
+      await tester.pump();
+
+      // 主体（AppBar 标题"小婉"所在）初始在最左
+      final titleBefore = tester.getTopLeft(find.text('小婉')).dx;
+
+      await tester.tap(find.byIcon(Icons.settings));
+      await tester.pump(); // 触发 setState
+      await tester.pump(const Duration(milliseconds: 350)); // 等平移动画完成
+
+      // 主体右移，标题位置变大
+      final titleAfter = tester.getTopLeft(find.text('小婉')).dx;
+      expect(titleAfter, greaterThan(titleBefore));
+      // 露出的抽屉里订阅入口可见
+      expect(find.text('订阅会员'), findsOneWidget);
+    });
+  });
 }

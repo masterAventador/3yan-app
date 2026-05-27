@@ -6,3 +6,4 @@ export 'src/widgets/glass_panel.dart';
 export 'src/widgets/aura_input.dart';
 export 'src/widgets/aura_button.dart';
 export 'src/widgets/aura_nav_bar.dart';
+export 'src/widgets/slide_drawer_scaffold.dart';
