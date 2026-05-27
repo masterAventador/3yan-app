@@ -18,6 +18,15 @@ class _FakeWsClient extends WsClient {
   /// 手动向 stream 注入 WsEvent（测试用）
   void inject(WsEvent event) => _ctrl.add(event);
 
+  /// 捕获 sendAck 调用记录，供测试断言
+  final sentAcks = <int>[];
+
+  @override
+  bool sendAck(int serverMsgId) {
+    sentAcks.add(serverMsgId);
+    return true;
+  }
+
   @override
   void onClose() {
     _ctrl.close();
@@ -133,6 +142,43 @@ void main() {
       expect(controller.refetchCount, 1);
     });
 
+  });
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // new_message ACK 回报
+  // ───────────────────────────────────────────────────────────────────────────
+  group('new_message ACK 回报', () {
+    test('收到 new_message（带 serverMsgId）后向 WS 回一条 ack 帧', () async {
+      controller.listenWsForTest();
+      fakeWs.inject(WsEvent.fromJson({
+        'type': WsEventType.newMessage,
+        'serverMsgId': 8888,
+        'message': {
+          'id': 8888,
+          'senderType': 'ai',
+          'content': '在吗？想你了',
+          'createdAt': '2026-05-27T09:00:00.000Z'
+        },
+      }));
+      await Future.microtask(() {});
+      expect(fakeWs.sentAcks, contains(8888));
+      expect(controller.messages.any((m) => m.id == 8888), isTrue);
+    });
+
+    test('new_message 无 serverMsgId 时不回 ack（不抛异常）', () async {
+      controller.listenWsForTest();
+      fakeWs.inject(WsEvent.fromJson({
+        'type': WsEventType.newMessage,
+        'message': {
+          'id': 123,
+          'senderType': 'ai',
+          'content': 'x',
+          'createdAt': '2026-05-27T09:00:00.000Z'
+        },
+      }));
+      await Future.microtask(() {});
+      expect(fakeWs.sentAcks, isEmpty);
+    });
   });
 
   // ───────────────────────────────────────────────────────────────────────────
