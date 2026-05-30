@@ -129,7 +129,8 @@ class MessageBubbleShell extends StatelessWidget {
 
   Widget _buildTimestamp() {
     // createdAt 为 null（typing 场景）时透明占位，保持整体高度与有时间戳的真实消息一致。
-    final text = createdAt == null ? '00:00' : DateUtil.formatHHmm(createdAt!);
+    final text =
+        createdAt == null ? '00:00' : DateUtil.formatChatTimestamp(createdAt!);
     return Text(
       text,
       style: TextStyle(
