@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sanyan_user/sanyan_user.dart';
 
+import 'auth_validators.dart';
 import 'login_success_handler.dart';
 
 class RegisterController extends GetxController {
@@ -20,7 +21,7 @@ class RegisterController extends GetxController {
 
   String? validatePhone(String phone) {
     if (phone.isEmpty) return '请输入手机号';
-    if (!RegExp(r'^1\d{10}$').hasMatch(phone)) return '手机号格式不正确';
+    if (!AuthValidators.phoneReg.hasMatch(phone)) return '手机号格式不正确';
     return null;
   }
 
