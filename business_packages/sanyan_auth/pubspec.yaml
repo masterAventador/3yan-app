@@ -18,7 +18,7 @@ dependencies:
   sanyan_routes:
     path: ../../foundation_packages/sanyan_routes
   sign_in_with_apple: ^6.1.0
-  fluwx: ^4.5.5
+  fluwx: ^5.7.5
   crypto: ^3.0.3
 
 flutter:
