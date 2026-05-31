@@ -103,34 +103,9 @@ class RegisterPage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Obx(() => GestureDetector(
-                              onTap: c.countdown.value > 0 ? null : c.sendSms,
-                              child: Container(
-                                height: 56,
-                                width: 100,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: c.countdown.value > 0
-                                        ? AuraColors.outlineVariant
-                                        : AuraColors.primary,
-                                  ),
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  c.countdown.value > 0
-                                      ? '${c.countdown.value}s'
-                                      : '获取验证码',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: c.countdown.value > 0
-                                        ? AuraColors.outlineVariant
-                                        : AuraColors.primary,
-                                  ),
-                                ),
-                              ),
+                        Obx(() => AuraSmsCodeButton(
+                              countdown: c.countdown.value,
+                              onTap: c.sendSms,
                             )),
                       ],
                     ),
