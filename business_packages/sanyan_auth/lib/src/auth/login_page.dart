@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sanyan_common_ui/sanyan_common_ui.dart';
 import 'package:sanyan_routes/sanyan_routes.dart';
+import '../oauth/oauth_login_controller.dart';
 import 'login_controller.dart';
 
 class LoginPage extends StatelessWidget {
@@ -10,6 +11,7 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = Get.put(LoginController());
+    final oauthC = Get.find<OauthLoginController>();
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -104,6 +106,55 @@ class LoginPage extends StatelessWidget {
                     Divider(
                       color: AuraColors.outlineVariant.withValues(alpha: 0.10),
                       thickness: 1,
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Other login methods divider
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Divider(
+                            color: AuraColors.outlineVariant
+                                .withValues(alpha: 0.20),
+                            thickness: 1,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            '其他登录方式',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AuraColors.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Divider(
+                            color: AuraColors.outlineVariant
+                                .withValues(alpha: 0.20),
+                            thickness: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Third-party login buttons
+                    AuraButton(
+                      key: const Key('btn_oauth_apple'),
+                      label: '使用 Apple 登录',
+                      onPressed: oauthC.loginWithApple,
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    AuraButton(
+                      key: const Key('btn_oauth_wechat'),
+                      label: '使用微信登录',
+                      onPressed: oauthC.loginWithWechat,
                     ),
 
                     const SizedBox(height: 24),
