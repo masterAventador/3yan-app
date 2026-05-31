@@ -3,6 +3,10 @@ import 'req/send_sms_req.dart';
 import 'req/register_req.dart';
 import 'req/login_req.dart';
 import 'req/register_device_token_req.dart';
+import 'req/oauth_challenge_req.dart';
+import 'req/oauth_login_req.dart';
+import 'req/oauth_bind_phone_req.dart';
+import 'data/oauth_login_data.dart';
 
 abstract class AuthApi {
   static final _client = ApiClient();
@@ -28,6 +32,36 @@ abstract class AuthApi {
       _client.send(
         LoginReq(phone: phone, password: password),
         fromData: (d) => d as Map<String, dynamic>,
+      );
+
+  /// 第三方登录前拿一次性 nonce（S8 防重放，Apple 登录透传给 Apple）。
+  /// 响应 data 形如 {nonce: "..."}，取其中的 nonce 字段。
+  static Future<ApiResponse<String?>> oauthChallenge() => _client.send(
+        OauthChallengeReq(),
+        fromData: (d) => (d as Map<String, dynamic>)['nonce'] as String?,
+      );
+
+  /// 第三方登录：命中身份直接登录，未绑则返回 bindTicket 走 oauthBindPhone。
+  static Future<ApiResponse<OauthLoginData>> oauthLogin({
+    required String provider,
+    required String credential,
+    String? nonce,
+  }) =>
+      _client.send(
+        OauthLoginReq(provider: provider, credential: credential, nonce: nonce),
+        fromData: (d) => OauthLoginData.fromJson(d as Map<String, dynamic>),
+      );
+
+  /// 第三方登录后绑定手机号建号。
+  static Future<ApiResponse<OauthLoginData>> oauthBindPhone({
+    required String bindTicket,
+    required String phone,
+    required String code,
+    String? password,
+  }) =>
+      _client.send(
+        OauthBindPhoneReq(bindTicket: bindTicket, phone: phone, code: code, password: password),
+        fromData: (d) => OauthLoginData.fromJson(d as Map<String, dynamic>),
       );
 
   /// 上报 device token（推送注册）。本期 L3 实推未通，仅打通通道。
