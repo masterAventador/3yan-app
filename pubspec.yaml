@@ -11,6 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   get: ^4.6.6
+  fluwx: ^4.5.5  # main.dart 直接调用 registerApi 初始化微信 SDK
 
   # Foundation packages
   sanyan_common_ui:
