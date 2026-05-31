@@ -11,6 +11,9 @@ import UIKit
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
+  // 微信登录回调由 fluwx plugin 通过 GeneratedPluginRegistrant 自动处理 open url，
+  // 这里无需手动转发 application(_:open:options:)。若真机联调发现微信不回调，再在此手动转发给 fluwx。
+
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
 

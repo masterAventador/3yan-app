@@ -1,21 +1,43 @@
 PODS:
   - Flutter (1.0.0)
+  - fluwx (0.0.1):
+    - Flutter
+    - fluwx/pay (= 0.0.1)
+  - fluwx/pay (0.0.1):
+    - Flutter
+    - WechatOpenSDK-XCFramework (~> 2.0.4)
   - integration_test (0.0.1):
     - Flutter
+  - sign_in_with_apple (0.0.1):
+    - Flutter
+  - WechatOpenSDK-XCFramework (2.0.5)
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
+  - fluwx (from `.symlinks/plugins/fluwx/ios`)
   - integration_test (from `.symlinks/plugins/integration_test/ios`)
+  - sign_in_with_apple (from `.symlinks/plugins/sign_in_with_apple/ios`)
+
+SPEC REPOS:
+  trunk:
+    - WechatOpenSDK-XCFramework
 
 EXTERNAL SOURCES:
   Flutter:
     :path: Flutter
+  fluwx:
+    :path: ".symlinks/plugins/fluwx/ios"
   integration_test:
     :path: ".symlinks/plugins/integration_test/ios"
+  sign_in_with_apple:
+    :path: ".symlinks/plugins/sign_in_with_apple/ios"
 
 SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  fluwx: 6bf9c5a3a99ad31b0de137dd92370a0d10a60f4b
   integration_test: 4a889634ef21a45d28d50d622cf412dc6d9f586e
+  sign_in_with_apple: c5dcc141574c8c54d5ac99dd2163c0c72ad22418
+  WechatOpenSDK-XCFramework: ff342ae616bb86df3d236aca38059dfd4bc4a949
 
 PODFILE CHECKSUM: bf409007e0d90d6108680888acc0ad809a2a0e93
 

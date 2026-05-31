@@ -68,5 +68,23 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- 微信登录回调用 URL Scheme。{{WECHAT_APPID}} 待填：替换为微信开放平台分配的 appid（形如 wxXXXXXXXXXXXXXXXX）。 -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>weixin</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>{{WECHAT_APPID}}</string>
+			</array>
+		</dict>
+	</array>
+	<!-- 微信 SDK 检测/拉起微信用的查询白名单 -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>weixin</string>
+		<string>weixinULAPI</string>
+	</array>
 </dict>
 </plist>
