@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sanyan_network/sanyan_network.dart';
-import 'package:sanyan_routes/sanyan_routes.dart';
 import 'package:sanyan_user/sanyan_user.dart';
+
+import 'login_success_handler.dart';
 
 class LoginController extends GetxController {
   final phoneController = TextEditingController(text: '13900001111');
   final passwordController = TextEditingController(text: '111111');
   final isLoading = false.obs;
   final obscurePassword = true.obs;
+
+  final LoginSuccessHandler _successHandler;
+  LoginController({LoginSuccessHandler? successHandler})
+      : _successHandler = successHandler ?? LoginSuccessHandlerImpl();
 
   String? validatePhone(String phone) {
     if (phone.isEmpty) return '请输入手机号';
@@ -40,12 +44,10 @@ class LoginController extends GetxController {
     try {
       final resp = await AuthApi.login(phone: phone, password: password);
       if (resp.success && resp.data != null) {
-        LocalStorage.token = resp.data!['token'];
-        LocalStorage.userId = resp.data!['userId'];
-        // TODO(plan5-push): 当前 token 为 null，登录后占位调用，真实 token 待推送 SDK 接入
-        AuthApi.registerPushTokenAfterLogin();
-        Get.find<WsClient>().connect();
-        Get.offAllNamed(AppRoutes.chat);
+        _successHandler.handle(
+          token: resp.data!['token'],
+          userId: resp.data!['userId'],
+        );
       } else {
         Get.snackbar('登录失败', resp.errMsg ?? '未知错误');
       }

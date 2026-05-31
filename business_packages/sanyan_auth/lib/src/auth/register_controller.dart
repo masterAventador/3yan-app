@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sanyan_network/sanyan_network.dart';
-import 'package:sanyan_routes/sanyan_routes.dart';
 import 'package:sanyan_user/sanyan_user.dart';
+
+import 'login_success_handler.dart';
 
 class RegisterController extends GetxController {
   final phoneController = TextEditingController();
@@ -13,6 +13,10 @@ class RegisterController extends GetxController {
   final isLoading = false.obs;
   final countdown = 0.obs;
   Timer? _countdownTimer;
+
+  final LoginSuccessHandler _successHandler;
+  RegisterController({LoginSuccessHandler? successHandler})
+      : _successHandler = successHandler ?? LoginSuccessHandlerImpl();
 
   String? validatePhone(String phone) {
     if (phone.isEmpty) return '请输入手机号';
@@ -88,10 +92,11 @@ class RegisterController extends GetxController {
         nickname: nickname.isNotEmpty ? nickname : null,
       );
       if (resp.success && resp.data != null) {
-        LocalStorage.token = resp.data!['token'];
-        LocalStorage.userId = resp.data!['userId'];
-        Get.find<WsClient>().connect();
-        Get.offAllNamed(AppRoutes.chat);
+        _successHandler.handle(
+          token: resp.data!['token'],
+          userId: resp.data!['userId'],
+          registerPush: false,
+        );
       } else {
         Get.snackbar('注册失败', resp.errMsg ?? '未知错误');
       }
